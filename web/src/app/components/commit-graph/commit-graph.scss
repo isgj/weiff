@@ -1,0 +1,171 @@
+.panel-layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.panel-header-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+}
+
+.h2-layout {
+  margin: 0;
+  font-size: var(--mat-sys-title-medium-size);
+  line-height: var(--mat-sys-title-medium-line-height);
+  font-weight: var(--mat-sys-title-medium-weight);
+}
+
+.p-layout {
+  margin: 2px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: var(--mat-sys-body-small-size);
+  line-height: var(--mat-sys-body-small-line-height);
+}
+
+.header-divider {
+  flex: none;
+}
+
+.commit-list-layout {
+  display: block;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 4px 8px 12px;
+  -webkit-user-select: none;
+  user-select: none;
+  --mat-list-active-indicator-color: var(--mat-sys-secondary-container);
+  --mat-list-active-indicator-shape: 8px;
+  --mat-list-list-item-label-text-size: var(--mat-sys-body-medium-size);
+  --mat-list-list-item-label-text-line-height: var(--mat-sys-body-medium-line-height);
+  --mat-list-list-item-label-text-weight: 550;
+  --mat-list-list-item-supporting-text-size: var(--mat-sys-body-small-size);
+  --mat-list-list-item-supporting-text-line-height: var(--mat-sys-body-small-line-height);
+  --mat-list-list-item-leading-icon-color: var(--mat-sys-on-surface);
+  --mat-list-list-item-leading-icon-start-space: 4px;
+  --mat-list-list-item-leading-icon-end-space: 12px;
+}
+
+.change-group-layout {
+  color: var(--mat-sys-on-surface);
+}
+
+.change-group-layout.selected {
+  color: var(--mat-sys-on-secondary-container);
+  --mat-list-list-item-label-text-color: var(--mat-sys-on-secondary-container);
+  --mat-list-list-item-supporting-text-color: var(--mat-sys-on-secondary-container);
+  --mat-list-list-item-leading-icon-color: var(--mat-sys-on-secondary-container);
+}
+
+.change-group-layout.mdc-list-item--with-leading-icon .graph-stack-layout {
+  display: flex;
+  width: auto;
+  height: 64px;
+  flex: none;
+  align-self: stretch;
+  flex-direction: column;
+  margin-block: 0;
+}
+
+.graph-stack-layout app-graph-svg {
+  flex: none;
+}
+
+.summary-line-layout {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  transform: translateY(-8px);
+  vertical-align: middle;
+}
+
+.strong-layout {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.divergent-icon-layout {
+  height: 18px;
+  width: 18px;
+  flex: none;
+  color: var(--mat-sys-error);
+  font-size: 18px;
+}
+
+.change-group-layout.mdc-list-item--with-trailing-meta .change-actions-layout {
+  display: grid;
+  align-self: center;
+  margin-block: 0;
+  margin-inline: 8px 4px;
+  place-items: center;
+}
+
+.change-group-layout.mdc-list-item--with-trailing-meta .change-actions-layout::before {
+  display: none;
+}
+
+.commit-meta-layout {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  transform: translateY(-8px);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.commit-meta-layout code {
+  flex: none;
+  font-family: var(--weiff-mono-font);
+}
+
+.commit-meta-layout > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.connector-row-layout {
+  display: grid;
+  height: 22px;
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr) 60px;
+  align-items: center;
+  column-gap: 12px;
+  padding-inline: 4px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: var(--mat-sys-body-small-size);
+  line-height: var(--mat-sys-body-small-line-height);
+}
+
+.connector-label-layout {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-state-layout {
+  padding: 16px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: var(--mat-sys-body-medium-size);
+  line-height: var(--mat-sys-body-medium-line-height);
+}
+
+.has-error {
+  color: var(--mat-sys-error);
+}
+
+.has-default-color {
+  color: inherit;
+}

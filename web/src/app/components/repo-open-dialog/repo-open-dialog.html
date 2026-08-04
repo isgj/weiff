@@ -1,0 +1,118 @@
+<h2 mat-dialog-title>
+  <span class="span-layout">
+    <span>Open repository</span>
+    <button mat-icon-button type="button" aria-label="Close dialog" (click)="cancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </span>
+</h2>
+
+<form class="open-repo-form" (submit)="open(); $event.preventDefault()">
+  <mat-dialog-content class="dialog-content-layout">
+    <div class="div-layout">
+      <mat-form-field
+        class="open-repo-field open-repo-field-layout"
+        appearance="outline"
+        subscriptSizing="dynamic"
+      >
+        <mat-label>Repository path</mat-label>
+        <mat-icon matPrefix>folder</mat-icon>
+        <input
+          matInput
+          class="input-layout"
+          spellcheck="false"
+          autocomplete="off"
+          cdkFocusInitial
+          placeholder="~/dev/my-repo"
+          [formField]="f.path"
+          [matAutocomplete]="pathAuto"
+        />
+        <mat-autocomplete #pathAuto="matAutocomplete">
+          @for (path of pathSuggestions(); track path) {
+            <mat-option class="option-layout" [value]="path">{{ path }}</mat-option>
+          }
+        </mat-autocomplete>
+      </mat-form-field>
+
+      <div class="div-layout-2">
+        <div class="div-layout-3">
+          <button
+            mat-icon-button
+            type="button"
+            aria-label="Parent directory"
+            [disabled]="(dirsResource.value()?.parent ?? '') === ''"
+            (click)="browseUp()"
+          >
+            <mat-icon>arrow_upward</mat-icon>
+          </button>
+          <span class="span-layout-2">
+            {{ dirsResource.value()?.path ?? browsePath() }}
+          </span>
+          @if (dirsResource.value()?.isRepo) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="button-layout"
+              (click)="pickDirectory(dirsResource.value()!.path)"
+            >
+              <mat-icon>check</mat-icon>
+              Use this directory
+            </button>
+          }
+        </div>
+        @if (dirsResource.isLoading()) {
+          <mat-progress-bar mode="indeterminate" />
+        }
+        <div class="div-layout-4">
+          @if (dirsResource.error(); as error) {
+            <p class="p-layout">Unable to list this directory.</p>
+          } @else {
+            @for (dir of dirsResource.value()?.dirs ?? []; track dir.path) {
+              <button
+                type="button"
+                class="button-layout-2"
+                (click)="dir.isRepo ? pickDirectory(dir.path) : browseTo(dir.path)"
+              >
+                <mat-icon class="icon-layout" [class.is-repository]="dir.isRepo">
+                  {{ dir.isRepo ? 'account_tree' : 'folder' }}
+                </mat-icon>
+                <span class="span-layout-3">{{ dir.name }}</span>
+                @if (dir.isRepo) {
+                  <span class="span-layout-4">jj repo</span>
+                }
+              </button>
+            } @empty {
+              @if (!dirsResource.isLoading()) {
+                <p class="p-layout">No subdirectories.</p>
+              }
+            }
+          }
+        </div>
+      </div>
+
+      <mat-form-field
+        class="open-repo-field open-repo-field-layout"
+        appearance="outline"
+        subscriptSizing="dynamic"
+      >
+        <mat-label>Display name (optional)</mat-label>
+        <mat-icon matPrefix>badge</mat-icon>
+        <input
+          matInput
+          spellcheck="false"
+          autocomplete="off"
+          [placeholder]="namePlaceholder()"
+          [formField]="f.name"
+        />
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions-layout">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button type="submit" [disabled]="!f().valid()">
+      <mat-icon>folder_open</mat-icon>
+      Open repository
+    </button>
+  </mat-dialog-actions>
+</form>

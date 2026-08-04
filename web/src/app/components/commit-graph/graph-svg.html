@@ -1,0 +1,239 @@
+<svg
+  class="graph-svg graph-svg-layout"
+  [attr.width]="svgWidth()"
+  [attr.height]="rowHeight"
+  [attr.viewBox]="'0 0 ' + svgWidth() + ' ' + rowHeight"
+  shape-rendering="crispEdges"
+  aria-hidden="true"
+  focusable="false"
+>
+  @for (cell of cells(); track cell.key) {
+    @switch (cell.char) {
+      @case ('│') {
+        <line
+          [attr.x1]="centerX(cell.col)"
+          y1="0"
+          [attr.x2]="centerX(cell.col)"
+          [attr.y2]="rowHeight"
+          [attr.stroke]="laneColor(cell.lane)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+        />
+      }
+      @case ('~') {
+        <line
+          [attr.x1]="centerX(cell.col)"
+          y1="0"
+          [attr.x2]="centerX(cell.col)"
+          [attr.y2]="rowHeight"
+          [attr.stroke]="laneColor(cell.lane)"
+          [attr.stroke-width]="lineWidth"
+          stroke-dasharray="2 3"
+          [attr.opacity]="elidedOpacity"
+        />
+      }
+      @case ('─') {
+        <line
+          [attr.x1]="centerX(cell.col) - 5"
+          [attr.y1]="centerY"
+          [attr.x2]="centerX(cell.col) + 5"
+          [attr.y2]="centerY"
+          [attr.stroke]="laneColor(cell.lane)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+        />
+      }
+      @case ('├') {
+        <line
+          [attr.x1]="centerX(cell.col)"
+          y1="0"
+          [attr.x2]="centerX(cell.col)"
+          [attr.y2]="rowHeight"
+          [attr.stroke]="laneColor(cell.lane)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+        />
+        <line
+          [attr.x1]="centerX(cell.col)"
+          [attr.y1]="centerY"
+          [attr.x2]="centerX(cell.col) + 5"
+          [attr.y2]="centerY"
+          [attr.stroke]="laneColor(cell.lane + 1)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+        />
+      }
+      @case ('┤') {
+        <line
+          [attr.x1]="centerX(cell.col)"
+          y1="0"
+          [attr.x2]="centerX(cell.col)"
+          [attr.y2]="rowHeight"
+          [attr.stroke]="laneColor(cell.lane)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+        />
+        <line
+          [attr.x1]="centerX(cell.col) - 5"
+          [attr.y1]="centerY"
+          [attr.x2]="centerX(cell.col)"
+          [attr.y2]="centerY"
+          [attr.stroke]="laneColor(cell.lane - 1)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+        />
+      }
+      @case ('╮') {
+        <path
+          [attr.d]="curvePath(cell.char, cell.col)"
+          fill="none"
+          [attr.stroke]="laneColor(cell.lane)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+          stroke-linecap="round"
+        />
+      }
+      @case ('╯') {
+        <path
+          [attr.d]="curvePath(cell.char, cell.col)"
+          fill="none"
+          [attr.stroke]="laneColor(cell.lane)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+          stroke-linecap="round"
+        />
+      }
+      @case ('╭') {
+        <path
+          [attr.d]="curvePath(cell.char, cell.col)"
+          fill="none"
+          [attr.stroke]="laneColor(cell.lane)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+          stroke-linecap="round"
+        />
+      }
+      @case ('╰') {
+        <path
+          [attr.d]="curvePath(cell.char, cell.col)"
+          fill="none"
+          [attr.stroke]="laneColor(cell.lane)"
+          [attr.stroke-width]="lineWidth"
+          [attr.opacity]="lineOpacity"
+          stroke-linecap="round"
+        />
+      }
+      @default {
+        @if (isNode(cell.char)) {
+          <line
+            [attr.x1]="centerX(cell.col)"
+            y1="0"
+            [attr.x2]="centerX(cell.col)"
+            [attr.y2]="centerY - nodeGap"
+            [attr.stroke]="laneColor(cell.lane)"
+            [attr.stroke-width]="lineWidth"
+            [attr.opacity]="lineOpacity"
+          />
+          <line
+            [attr.x1]="centerX(cell.col)"
+            [attr.y1]="centerY + nodeGap"
+            [attr.x2]="centerX(cell.col)"
+            [attr.y2]="rowHeight"
+            [attr.stroke]="laneColor(cell.lane)"
+            [attr.stroke-width]="lineWidth"
+            [attr.opacity]="lineOpacity"
+          />
+
+          @switch (cell.char) {
+            @case ('@') {
+              <circle
+                [attr.cx]="centerX(cell.col)"
+                [attr.cy]="centerY"
+                [attr.r]="workingCopyRadius + 1"
+                fill="none"
+                stroke="var(--color-graph-working)"
+                stroke-width="1.8"
+              />
+              <circle
+                [attr.cx]="centerX(cell.col)"
+                [attr.cy]="centerY"
+                r="2.5"
+                fill="var(--color-graph-working)"
+              />
+            }
+            @case ('◆') {
+              <circle
+                [attr.cx]="centerX(cell.col)"
+                [attr.cy]="centerY"
+                [attr.r]="nodeRadius"
+                fill="none"
+                [attr.stroke]="laneColor(cell.lane)"
+                stroke-width="1.4"
+                opacity="0.72"
+              />
+            }
+            @case ('×') {
+              <circle
+                [attr.cx]="centerX(cell.col)"
+                [attr.cy]="centerY"
+                [attr.r]="workingCopyRadius"
+                fill="var(--color-app-error)"
+              />
+              <line
+                [attr.x1]="centerX(cell.col) - 2.5"
+                [attr.y1]="centerY - 2.5"
+                [attr.x2]="centerX(cell.col) + 2.5"
+                [attr.y2]="centerY + 2.5"
+                stroke="var(--color-app-on-error)"
+                stroke-width="1.5"
+                shape-rendering="auto"
+              />
+              <line
+                [attr.x1]="centerX(cell.col) + 2.5"
+                [attr.y1]="centerY - 2.5"
+                [attr.x2]="centerX(cell.col) - 2.5"
+                [attr.y2]="centerY + 2.5"
+                stroke="var(--color-app-on-error)"
+                stroke-width="1.5"
+                shape-rendering="auto"
+              />
+            }
+            @case ('◌') {
+              <circle
+                [attr.cx]="centerX(cell.col)"
+                [attr.cy]="centerY"
+                [attr.r]="nodeRadius - 0.5"
+                fill="none"
+                [attr.stroke]="laneColor(cell.lane)"
+                stroke-width="1.2"
+                opacity="0.38"
+              />
+            }
+            @default {
+              <circle
+                [attr.cx]="centerX(cell.col)"
+                [attr.cy]="centerY"
+                [attr.r]="nodeRadius"
+                [attr.fill]="laneColor(cell.lane)"
+                [attr.opacity]="nodeOpacity"
+              />
+            }
+          }
+
+          @if (divergent()) {
+            <circle
+              [attr.cx]="centerX(cell.col)"
+              [attr.cy]="centerY"
+              [attr.r]="nodeRadius + 3"
+              fill="none"
+              [attr.stroke]="laneColor(cell.lane)"
+              stroke-width="1"
+              stroke-dasharray="2 2"
+              opacity="0.55"
+            />
+          }
+        }
+      }
+    }
+  }
+</svg>

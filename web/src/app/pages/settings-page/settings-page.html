@@ -1,0 +1,53 @@
+<main class="settings-page">
+  <header class="page-header">
+    <h1>Settings</h1>
+  </header>
+
+  <section class="settings-group" aria-labelledby="appearance-title">
+    <div class="group-heading">
+      <h2 id="appearance-title">Appearance</h2>
+    </div>
+
+    <div class="setting-row">
+      <h3>Theme</h3>
+      <mat-button-toggle-group
+        [value]="dashboard.themeMode()"
+        hideSingleSelectionIndicator
+        aria-label="Theme"
+        (change)="setThemeMode($event.value)"
+      >
+        <mat-button-toggle value="light">
+          <mat-icon>light_mode</mat-icon>
+          Light
+        </mat-button-toggle>
+        <mat-button-toggle value="system">
+          <mat-icon>computer</mat-icon>
+          System
+        </mat-button-toggle>
+        <mat-button-toggle value="dark">
+          <mat-icon>dark_mode</mat-icon>
+          Dark
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <div class="setting-row">
+      <h3>Diff view</h3>
+      <mat-button-toggle-group
+        [value]="dashboard.diffMode()"
+        hideSingleSelectionIndicator
+        aria-label="Diff view"
+        (change)="setDiffMode($event.value)"
+      >
+        <mat-button-toggle value="inline">
+          <mat-icon>view_headline</mat-icon>
+          Inline
+        </mat-button-toggle>
+        <mat-button-toggle value="split">
+          <mat-icon>vertical_split</mat-icon>
+          Split
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+  </section>
+</main>

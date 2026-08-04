@@ -1,0 +1,43 @@
+<h2 mat-dialog-title>
+  <span class="span-layout">
+    <span>Edit description</span>
+    <button mat-icon-button type="button" aria-label="Close dialog" (click)="cancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </span>
+</h2>
+
+<form (submit)="save(); $event.preventDefault()">
+  <mat-dialog-content class="dialog-content-layout">
+    <div class="div-layout">
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Title</mat-label>
+        <input
+          matInput
+          spellcheck="false"
+          autocomplete="off"
+          cdkFocusInitial
+          [formField]="f.title"
+        />
+        <mat-hint>First line of the change description</mat-hint>
+        @if (f.title().touched() && f.title().errors().length > 0) {
+          <mat-error>{{ f.title().errors()[0].message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Description body</mat-label>
+        <textarea matInput rows="6" spellcheck="false" [formField]="f.body"></textarea>
+        <mat-hint>Optional details, separated from the title by a blank line</mat-hint>
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions-layout">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button type="submit" [disabled]="!f().valid()">
+      <mat-icon>edit_note</mat-icon>
+      Save description
+    </button>
+  </mat-dialog-actions>
+</form>

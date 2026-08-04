@@ -1,0 +1,56 @@
+<div class="revisions-page revisions-page-layout">
+  <aside class="revision-graph-column revision-graph-column-layout">
+    @if (dashboard.state(); as repoState) {
+      <app-commit-graph
+        class="app-commit-graph-layout"
+        [commits]="repoState.commits"
+        [graphRows]="repoState.graphRows"
+        [currentCommitId]="repoState.currentCommitId"
+        [selectedCommitId]="dashboard.selectedCommit()?.commitId ?? dashboard.selectedRev()"
+        (commitSelected)="dashboard.selectCommit($event)"
+        (checkoutRequested)="dashboard.checkout($event)"
+        (abandonRequested)="dashboard.abandon($event)"
+        (newFromRequested)="dashboard.newFrom($event)"
+        (rebaseRequested)="dashboard.rebase($event)"
+      />
+    } @else {
+      <div class="sidebar-empty sidebar-empty-layout">Waiting for repository state</div>
+    }
+  </aside>
+
+  <main class="content content-layout">
+    <app-commit-detail
+      [commit]="dashboard.selectedCommit()"
+      [bookmarks]="dashboard.bookmarks()"
+      [selectedRev]="dashboard.selectedCommit()?.commitId ?? dashboard.selectedRev()"
+      [loading]="dashboard.loading()"
+      [evolutionLog]="dashboard.evolutionLog()"
+      [evolutionLoading]="dashboard.evolutionResource.isLoading()"
+      [evolutionError]="dashboard.evolutionError()"
+      [selectedEvolutionCommitId]="dashboard.selectedEvolutionCommitId()"
+      (checkoutRequested)="dashboard.checkout($event)"
+      (newFromRequested)="dashboard.newFrom($event)"
+      (describeRequested)="dashboard.describe($event.rev, $event.description)"
+      (abandonRequested)="dashboard.abandon($event)"
+      (rebaseRequested)="dashboard.rebase($event)"
+      (evolutionSelected)="dashboard.selectEvolutionEntry($event)"
+      (evolutionCleared)="dashboard.clearEvolutionSelection()"
+      (bookmarkSaved)="dashboard.saveBookmark($event)"
+      (bookmarkDeleted)="dashboard.deleteBookmark($event)"
+      (bookmarkPushed)="dashboard.pushBookmark($event)"
+    />
+
+    <app-diff-view
+      [diff]="dashboard.diff()"
+      [loading]="dashboard.diffResource.isLoading()"
+      [error]="dashboard.error()"
+      [mode]="dashboard.diffMode()"
+      [restorable]="dashboard.selectedEvolutionCommitId() === null"
+      [ignoreWhitespace]="dashboard.diffIgnoreWhitespace()"
+      (modeChanged)="dashboard.diffMode.set($event)"
+      (ignoreWhitespaceChanged)="dashboard.diffIgnoreWhitespace.set($event)"
+      (restoreFileRequested)="restoreFile($event)"
+      (restoreHunkRequested)="restoreHunk($event)"
+    />
+  </main>
+</div>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- main lane -->
+  <path d="M20 52 V10" stroke="#2563eb" stroke-width="6" stroke-linecap="round" fill="none" />
+  <!-- branch lane: forks from main, runs, merges back -->
+  <path
+    d="M20 44 C20 34 48 37 48 27 C48 19 23 22 20 14"
+    stroke="#16a34a"
+    stroke-width="6"
+    stroke-linecap="round"
+    fill="none"
+  />
+  <!-- commit nodes -->
+  <circle cx="20" cy="52" r="9" fill="#2563eb" />
+  <circle cx="48" cy="27" r="9" fill="#16a34a" />
+  <!-- working-copy node -->
+  <circle cx="20" cy="10" r="10" fill="#eab308" />
+</svg>

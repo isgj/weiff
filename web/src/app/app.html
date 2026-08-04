@@ -1,0 +1,245 @@
+<div class="app-shell app-shell-layout">
+  <mat-toolbar class="app-toolbar app-toolbar-layout" role="banner">
+    <button
+      mat-icon-button
+      type="button"
+      [matTooltip]="
+        compactLayout()
+          ? mobileNavigationOpen()
+            ? 'Close navigation'
+            : 'Open navigation'
+          : navigationCollapsed()
+            ? 'Expand navigation'
+            : 'Collapse navigation'
+      "
+      [attr.aria-label]="
+        compactLayout()
+          ? mobileNavigationOpen()
+            ? 'Close navigation'
+            : 'Open navigation'
+          : navigationCollapsed()
+            ? 'Expand navigation'
+            : 'Collapse navigation'
+      "
+      (click)="toggleNavigation()"
+    >
+      <mat-icon>
+        {{
+          compactLayout()
+            ? mobileNavigationOpen()
+              ? 'close'
+              : 'menu'
+            : navigationCollapsed()
+              ? 'menu'
+              : 'menu_open'
+        }}
+      </mat-icon>
+    </button>
+
+    <div class="app-brand app-brand-layout" aria-label="Weiff">
+      <mat-icon class="icon-layout">account_tree</mat-icon>
+      <h1 class="app-title app-title-layout">Weiff</h1>
+    </div>
+
+    <span class="toolbar-divider toolbar-divider-layout" aria-hidden="true"></span>
+
+    <mat-form-field
+      class="repo-select-field repo-select-field-layout"
+      appearance="outline"
+      subscriptSizing="dynamic"
+    >
+      <mat-label>Repository</mat-label>
+      <mat-select
+        [value]="dashboard.selectedRepoValue()"
+        panelClass="repo-select-panel"
+        aria-label="Repository"
+        (selectionChange)="selectRepo($event.value)"
+      >
+        <mat-select-trigger>{{ dashboard.selectedRepoLabel() }}</mat-select-trigger>
+        @for (repo of dashboard.repoOptions(); track repo.value) {
+          <mat-option
+            [value]="repo.value"
+            [title]="repo.detail"
+            [class.is-hidden]="repo.value === dashboard.selectedRepoValue()"
+          >
+            <span class="repo-option repo-option-layout">
+              <span class="span-layout">
+                <span class="repo-option-label repo-option-label-layout">
+                  {{ repo.label }}
+                </span>
+                <span class="repo-option-detail repo-option-detail-layout">
+                  {{ repo.detail }}
+                </span>
+              </span>
+              @if (dashboard.isRememberedRepo(repo.value)) {
+                <button
+                  mat-icon-button
+                  class="repo-forget-button repo-forget-button-layout"
+                  type="button"
+                  matTooltip="Forget repository"
+                  [attr.aria-label]="'Forget repository ' + repo.detail"
+                  (mousedown)="$event.stopPropagation()"
+                  (click)="dashboard.forgetRepo(repo.value, $event)"
+                >
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              }
+            </span>
+          </mat-option>
+        }
+        <mat-option [value]="openRepoValue">
+          <span class="repo-option repo-option-action repo-option-layout-2">
+            <mat-icon>folder_open</mat-icon>
+            <span>Open repository...</span>
+          </span>
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <form
+      class="revset-form revset-form-layout"
+      (submit)="dashboard.applyLogRevset(); $event.preventDefault()"
+    >
+      <mat-form-field
+        class="revset-field revset-field-layout"
+        appearance="outline"
+        subscriptSizing="dynamic"
+      >
+        <mat-label>Log revisions</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          class="input-layout"
+          spellcheck="false"
+          placeholder="Log revisions (e.g. description(feat))"
+          [value]="dashboard.revsetDraft()"
+          (input)="dashboard.setRevsetDraft($event)"
+        />
+        @if (dashboard.revsetDraft() !== '') {
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            matTooltip="Clear revisions"
+            aria-label="Clear revisions"
+            (click)="dashboard.clearLogRevset()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+    </form>
+
+    <span class="toolbar-spacer toolbar-spacer-layout"></span>
+
+    <mat-button-toggle-group
+      class="repo-action-toggle-group repo-action-toggle-group-layout"
+      hideSingleSelectionIndicator
+      [value]="dashboard.actionToggleValue()"
+      aria-label="Repository actions"
+    >
+      <mat-button-toggle
+        class="repo-action-toggle repo-action-toggle-layout"
+        value="fetch"
+        matTooltip="Fetch from Git remotes"
+        (click)="dashboard.fetchRepo()"
+        [disabled]="dashboard.loading()"
+      >
+        <mat-icon class="icon-layout-2">cloud_sync</mat-icon>
+        <span>Fetch</span>
+      </mat-button-toggle>
+      <mat-button-toggle
+        class="repo-action-toggle repo-action-toggle-layout"
+        value="refresh"
+        matTooltip="Refresh app state"
+        (click)="dashboard.refresh()"
+        [disabled]="dashboard.loading()"
+      >
+        <mat-icon class="icon-layout-2">refresh</mat-icon>
+        <span>Refresh</span>
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+  </mat-toolbar>
+
+  @if (dashboard.loading()) {
+    <mat-progress-bar
+      class="progress-bar-layout"
+      mode="indeterminate"
+      aria-label="Loading repository data"
+    ></mat-progress-bar>
+  }
+
+  <mat-sidenav-container autosize class="navigation-shell navigation-shell-layout">
+    <mat-sidenav
+      role="complementary"
+      aria-label="Application navigation"
+      [mode]="compactLayout() ? 'over' : 'side'"
+      [opened]="!compactLayout() || mobileNavigationOpen()"
+      class="navigation-drawer navigation-rail navigation-drawer-layout"
+      [style.width.px]="compactLayout() ? 280 : navigationCollapsed() ? 80 : 220"
+      (closedStart)="mobileNavigationOpen.set(false)"
+    >
+      <div class="div-layout">
+        <mat-nav-list class="nav-list-layout" aria-label="Primary navigation">
+          @for (navItem of primaryNavItems; track navItem.path) {
+            <a
+              mat-list-item
+              [routerLink]="navItem.path"
+              [queryParams]="navItem.queryParams"
+              [queryParamsHandling]="navItem.queryParamsHandling ?? 'preserve'"
+              routerLinkActive
+              #activeLink="routerLinkActive"
+              [activated]="activeLink.isActive"
+              ariaCurrentWhenActive="page"
+              [matTooltip]="navigationCollapsed() ? navItem.label : ''"
+              [matTooltipDisabled]="!navigationCollapsed()"
+              [attr.aria-label]="navItem.label"
+              (click)="closeMobileNavigation()"
+            >
+              <mat-icon matListItemIcon>{{ navItem.icon }}</mat-icon>
+              @if (compactLayout() || !navigationCollapsed()) {
+                <span matListItemTitle>{{ navItem.label }}</span>
+              }
+            </a>
+          }
+        </mat-nav-list>
+
+        <mat-divider class="divider-layout"></mat-divider>
+
+        <mat-nav-list class="nav-list-layout" aria-label="Application settings">
+          @for (navAction of secondaryNavActions; track navAction.label) {
+            <a
+              mat-list-item
+              [routerLink]="navAction.path"
+              [routerLinkActiveOptions]="{ exact: true }"
+              routerLinkActive
+              #secondaryActiveLink="routerLinkActive"
+              [activated]="secondaryActiveLink.isActive"
+              ariaCurrentWhenActive="page"
+              [matTooltip]="navigationCollapsed() ? navAction.label : ''"
+              [matTooltipDisabled]="!navigationCollapsed()"
+              [attr.aria-label]="navAction.label"
+              (click)="closeMobileNavigation()"
+            >
+              <mat-icon matListItemIcon>{{ navAction.icon }}</mat-icon>
+              @if (compactLayout() || !navigationCollapsed()) {
+                <span matListItemTitle>{{ navAction.label }}</span>
+              }
+            </a>
+          }
+        </mat-nav-list>
+
+        <div class="div-layout-2"></div>
+
+        <app-connection-status
+          class="app-connection-status-layout"
+          [collapsed]="!compactLayout() && navigationCollapsed()"
+        />
+      </div>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="sidenav-content-layout">
+      <router-outlet />
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

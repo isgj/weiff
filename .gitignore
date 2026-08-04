@@ -1,0 +1,7 @@
+/dist/
+/weiff
+/internal/webui/dist/
+/internal/httpapi/static/
+/web/node_modules/
+/web/.angular/
+/web/dist/
