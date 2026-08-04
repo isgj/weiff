@@ -1,0 +1,420 @@
+<mat-card appearance="outlined" class="files-card files-card-layout" aria-live="polite">
+  @if (loading()) {
+    <div class="loading-state loading-state-layout">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (error(); as message) {
+    <div class="error-box error-box-layout" role="alert">
+      {{ message }}
+    </div>
+  } @else if (diff(); as state) {
+    <header class="files-header files-header-layout">
+      <div>
+        <h2 class="h2-layout">
+          Files changed <span class="span-layout">({{ files().length }})</span>
+        </h2>
+        <p class="p-layout">
+          <code>{{ state.rev }}</code>
+          <span>{{ state.vcs }}</span>
+        </p>
+      </div>
+      @if (files().length > 0) {
+        <div class="files-toolbar files-toolbar-layout">
+          <mat-form-field
+            class="file-filter-field file-filter-field-layout"
+            appearance="outline"
+            subscriptSizing="dynamic"
+          >
+            <mat-icon matPrefix>filter_list</mat-icon>
+            <input
+              matInput
+              type="text"
+              placeholder="Filter files"
+              aria-label="Filter files by path"
+              [value]="filterText()"
+              (input)="setFilter($event)"
+            />
+            @if (filterText() !== '') {
+              <button
+                matSuffix
+                mat-icon-button
+                type="button"
+                aria-label="Clear file filter"
+                (click)="clearFilter()"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </mat-form-field>
+          <button
+            mat-icon-button
+            type="button"
+            class="whitespace-toggle-button"
+            [class.whitespace-toggle-active]="ignoreWhitespace()"
+            [matTooltip]="
+              ignoreWhitespace() ? 'Show whitespace changes' : 'Hide whitespace changes'
+            "
+            [attr.aria-pressed]="ignoreWhitespace()"
+            aria-label="Toggle whitespace changes"
+            (click)="ignoreWhitespaceChanged.emit(!ignoreWhitespace())"
+          >
+            <mat-icon>space_bar</mat-icon>
+          </button>
+          <mat-button-toggle-group
+            class="diff-mode-toggle"
+            hideSingleSelectionIndicator
+            aria-label="Diff layout"
+            [value]="mode()"
+            (change)="modeChanged.emit($event.value)"
+          >
+            <mat-button-toggle value="inline" matTooltip="Inline diff" aria-label="Inline diff">
+              <mat-icon>view_headline</mat-icon>
+            </mat-button-toggle>
+            <mat-button-toggle value="split" matTooltip="Split diff" aria-label="Split diff">
+              <mat-icon>vertical_split</mat-icon>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+      }
+    </header>
+
+    @if (state.truncated) {
+      <div class="truncated-diff-notice" role="status">
+        <mat-icon>warning_amber</mat-icon>
+        <span>Diff preview limited to {{ diffLimitLabel(state.maxBytes) }}.</span>
+      </div>
+    }
+
+    @if (files().length > 0) {
+      <mat-accordion class="file-list file-list-layout">
+        @for (file of visibleFiles(); track file.path) {
+          <mat-expansion-panel
+            class="file-panel file-panel-layout"
+            [expanded]="isExpanded(file)"
+            (opened)="openFile(file.path)"
+            (closed)="closeFile(file)"
+          >
+            <mat-expansion-panel-header>
+              <mat-panel-title class="file-title file-title-layout">
+                <span
+                  class="status-badge status-badge-layout"
+                  [title]="file.statusLabel"
+                  [attr.aria-label]="file.statusLabel"
+                >
+                  <mat-icon class="icon-layout">{{ file.statusIcon }}</mat-icon>
+                </span>
+                <mat-icon class="file-icon file-icon-layout">description</mat-icon>
+                <span class="file-path file-path-layout" [title]="file.path">
+                  {{ file.path }}
+                </span>
+                <button
+                  mat-icon-button
+                  class="copy-path-button copy-path-button-layout"
+                  type="button"
+                  matTooltip="Copy file path"
+                  [attr.aria-label]="'Copy path ' + file.path"
+                  [cdkCopyToClipboard]="file.path"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon class="icon-layout-2">content_copy</mat-icon>
+                </button>
+                @if (file.conflict) {
+                  <mat-chip-set
+                    class="conflict-chip-set conflict-chip-set-layout"
+                    aria-label="Conflict marker"
+                    title="This file has unresolved conflicts"
+                  >
+                    <mat-chip
+                      class="conflict-chip"
+                      highlighted
+                      title="This file has unresolved conflicts"
+                    >
+                      <mat-icon matChipAvatar>warning_amber</mat-icon>
+                      Conflict
+                    </mat-chip>
+                  </mat-chip-set>
+                }
+              </mat-panel-title>
+              <mat-panel-description class="file-stats file-stats-layout">
+                <span>{{ file.status || 'changed' }}</span>
+                @if (file.addedCount > 0) {
+                  <span class="added-stat added-stat-layout">+{{ file.addedCount }}</span>
+                }
+                @if (file.removedCount > 0) {
+                  <span class="removed-stat removed-stat-layout"> -{{ file.removedCount }} </span>
+                }
+                @if (restorable()) {
+                  <button
+                    mat-icon-button
+                    class="restore-file-button restore-file-button-layout"
+                    type="button"
+                    matTooltip="Restore file to parent revision"
+                    [attr.aria-label]="'Restore ' + file.path"
+                    (click)="requestFileRestore(file, $event)"
+                  >
+                    <mat-icon class="icon-layout-3">settings_backup_restore</mat-icon>
+                  </button>
+                }
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+
+            @if (mode() === 'inline') {
+              <div
+                class="diff-output diff-output-layout"
+                role="table"
+                tabindex="0"
+                [attr.aria-label]="'Inline diff for ' + file.path"
+              >
+                <div class="diff-content">
+                  @for (hunk of file.hunks; track hunk.header + $index) {
+                    @if (hunk.gapBefore; as gap) {
+                      <ng-container
+                        [ngTemplateOutlet]="inlineGap"
+                        [ngTemplateOutletContext]="{ gap, file }"
+                      />
+                    }
+                    <div class="hunk-row hunk-row-layout" role="row">
+                      <mat-chip-set
+                        class="hunk-chip-set hunk-chip-set-layout"
+                        aria-label="Hunk range"
+                      >
+                        <mat-chip class="hunk-chip hunk-chip-layout" highlighted>
+                          {{ hunk.header }}
+                        </mat-chip>
+                      </mat-chip-set>
+                      @if (restorable() && hunk.restore != null) {
+                        <button
+                          mat-icon-button
+                          class="restore-hunk-button restore-hunk-button-layout"
+                          type="button"
+                          matTooltip="Restore this hunk to parent revision"
+                          [attr.aria-label]="'Restore hunk ' + hunk.header + ' in ' + file.path"
+                          (click)="requestHunkRestore(file, hunk)"
+                        >
+                          <mat-icon class="icon-layout-2">settings_backup_restore</mat-icon>
+                        </button>
+                      }
+                    </div>
+                    @for (line of hunk.lines; track $index) {
+                      <ng-container
+                        [ngTemplateOutlet]="inlineLine"
+                        [ngTemplateOutletContext]="{ line }"
+                      />
+                    }
+                    @if ($last && file.trailingGap; as gap) {
+                      <ng-container
+                        [ngTemplateOutlet]="inlineGap"
+                        [ngTemplateOutletContext]="{ gap, file }"
+                      />
+                    }
+                  } @empty {
+                    <div class="empty-state compact-empty empty-state-layout">
+                      <div class="div-layout">
+                        <mat-icon class="icon-layout-4">code_off</mat-icon>
+                        @if (file.statusLabel === 'deleted') {
+                          <span>Deleted file with no textual hunks.</span>
+                        } @else {
+                          <span>No textual hunks for this file.</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div
+                class="split-output split-output-layout"
+                role="table"
+                tabindex="0"
+                [attr.aria-label]="'Split diff for ' + file.path"
+              >
+                @for (hunk of file.hunks; track hunk.header + $index) {
+                  @if (hunk.gapBefore; as gap) {
+                    <ng-container
+                      [ngTemplateOutlet]="splitGap"
+                      [ngTemplateOutletContext]="{ gap, file }"
+                    />
+                  }
+                  <div class="hunk-row hunk-row-layout" role="row">
+                    <mat-chip-set
+                      class="hunk-chip-set hunk-chip-set-layout"
+                      aria-label="Hunk range"
+                    >
+                      <mat-chip class="hunk-chip hunk-chip-layout" highlighted>
+                        {{ hunk.header }}
+                      </mat-chip>
+                    </mat-chip-set>
+                    @if (restorable() && hunk.restore != null) {
+                      <button
+                        mat-icon-button
+                        class="restore-hunk-button restore-hunk-button-layout"
+                        type="button"
+                        matTooltip="Restore this hunk to parent revision"
+                        [attr.aria-label]="'Restore hunk ' + hunk.header + ' in ' + file.path"
+                        (click)="requestHunkRestore(file, hunk)"
+                      >
+                        <mat-icon class="icon-layout-2">settings_backup_restore</mat-icon>
+                      </button>
+                    }
+                  </div>
+                  @for (row of hunk.splitRows; track $index) {
+                    @if (row.full) {
+                      <div [class]="rowClass(row)" role="row">
+                        <code
+                          class="syntax-code split-full diff-code split-full-layout"
+                          role="cell"
+                          [innerHTML]="row.full.highlightedContent"
+                        ></code>
+                      </div>
+                    } @else {
+                      <div [class]="rowClass(row)" role="row">
+                        <div
+                          class="split-cell split-left split-cell-layout"
+                          [class.split-empty]="row.left == null"
+                          role="cell"
+                        >
+                          <span class="line-number line-number-layout">
+                            {{ row.left?.lineNumber ?? '' }}
+                          </span>
+                          <code
+                            class="syntax-code diff-code diff-code-layout"
+                            [innerHTML]="row.left?.highlightedContent ?? '&nbsp;'"
+                          ></code>
+                        </div>
+                        <div
+                          class="split-cell split-right split-cell-layout-2"
+                          [class.split-empty]="row.right == null"
+                          role="cell"
+                        >
+                          <span class="line-number line-number-layout">
+                            {{ row.right?.lineNumber ?? '' }}
+                          </span>
+                          <code
+                            class="syntax-code diff-code diff-code-layout"
+                            [innerHTML]="row.right?.highlightedContent ?? '&nbsp;'"
+                          ></code>
+                        </div>
+                      </div>
+                    }
+                  }
+                  @if ($last && file.trailingGap; as gap) {
+                    <ng-container
+                      [ngTemplateOutlet]="splitGap"
+                      [ngTemplateOutletContext]="{ gap, file }"
+                    />
+                  }
+                } @empty {
+                  <div class="empty-state compact-empty empty-state-layout">
+                    <div class="div-layout">
+                      <mat-icon class="icon-layout-4">code_off</mat-icon>
+                      @if (file.statusLabel === 'deleted') {
+                        <span>Deleted file with no textual hunks.</span>
+                      } @else {
+                        <span>No textual hunks for this file.</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </mat-expansion-panel>
+        } @empty {
+          <div class="empty-state filter-empty empty-state-layout-2">
+            <div class="div-layout-2">
+              <mat-icon class="icon-layout-5">search_off</mat-icon>
+              <span>No files match "{{ filterText().trim() }}".</span>
+              <button mat-stroked-button type="button" (click)="clearFilter()">Clear filter</button>
+            </div>
+          </div>
+        }
+      </mat-accordion>
+    } @else {
+      <div class="empty-state empty-state-layout-3">
+        <div class="div-layout-2">
+          <mat-icon class="icon-layout-5">check_circle_outline</mat-icon>
+          <span>No changes for this revision.</span>
+        </div>
+      </div>
+    }
+  } @else {
+    <div class="empty-state empty-state-layout-3">
+      <div class="div-layout-2">
+        <mat-icon class="icon-layout-5">difference</mat-icon>
+        <span>Select a revision to inspect.</span>
+      </div>
+    </div>
+  }
+</mat-card>
+
+<ng-template #inlineLine let-line="line">
+  <div [class]="lineClass(line)" role="row">
+    <span class="line-number old-line line-number-layout-2">
+      {{ line.oldLineNumber ?? '' }}
+    </span>
+    <span class="line-number new-line line-number-layout-3">
+      {{ line.newLineNumber ?? '' }}
+    </span>
+    <span class="line-symbol line-symbol-layout">
+      {{ line.symbol }}
+    </span>
+    <code
+      class="syntax-code diff-code diff-code-layout-2"
+      [innerHTML]="line.highlightedContent"
+    ></code>
+  </div>
+</ng-template>
+
+<ng-template #inlineGap let-gap="gap" let-file="file">
+  @if (expandedGaps().get(gap.key); as expanded) {
+    @for (line of expanded.lines; track $index) {
+      <ng-container [ngTemplateOutlet]="inlineLine" [ngTemplateOutletContext]="{ line }" />
+    }
+  } @else {
+    <button
+      type="button"
+      class="gap-expander gap-expander-layout"
+      [attr.aria-label]="gapLabel(gap) + ' in ' + file.path"
+      (click)="expandGap(file, gap)"
+    >
+      <mat-icon class="icon-layout-2">unfold_more</mat-icon>
+      {{ gapLabel(gap) }}
+    </button>
+  }
+</ng-template>
+
+<ng-template #splitGap let-gap="gap" let-file="file">
+  @if (expandedGaps().get(gap.key); as expanded) {
+    @for (row of expanded.splitRows; track $index) {
+      <div [class]="rowClass(row)" role="row">
+        <div class="split-cell split-left split-cell-layout" role="cell">
+          <span class="line-number line-number-layout">
+            {{ row.left?.lineNumber ?? '' }}
+          </span>
+          <code
+            class="syntax-code diff-code diff-code-layout"
+            [innerHTML]="row.left?.highlightedContent ?? '&nbsp;'"
+          ></code>
+        </div>
+        <div class="split-cell split-right split-cell-layout-2" role="cell">
+          <span class="line-number line-number-layout">
+            {{ row.right?.lineNumber ?? '' }}
+          </span>
+          <code
+            class="syntax-code diff-code diff-code-layout"
+            [innerHTML]="row.right?.highlightedContent ?? '&nbsp;'"
+          ></code>
+        </div>
+      </div>
+    }
+  } @else {
+    <button
+      type="button"
+      class="gap-expander gap-expander-layout"
+      [attr.aria-label]="gapLabel(gap) + ' in ' + file.path"
+      (click)="expandGap(file, gap)"
+    >
+      <mat-icon class="icon-layout-2">unfold_more</mat-icon>
+      {{ gapLabel(gap) }}
+    </button>
+  }
+</ng-template>

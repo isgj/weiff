@@ -1,0 +1,142 @@
+.span-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dialog-content-layout {
+  overflow-x: hidden;
+}
+
+.div-layout {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.open-repo-field-layout {
+  width: 100%;
+}
+
+.input-layout {
+  font-family: var(--weiff-mono-font);
+  font-size: 13px;
+}
+
+.option-layout {
+  font-family: var(--weiff-mono-font);
+  font-size: 13px;
+}
+
+.div-layout-2 {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--mat-sys-outline-variant);
+}
+
+.div-layout-3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--mat-sys-outline-variant);
+  background-color: var(--mat-sys-surface-container-low);
+  padding-inline: 0.5rem;
+  padding-block: 0.25rem;
+}
+
+.span-layout-2 {
+  min-width: 0px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--weiff-mono-font);
+  font-size: 12px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.button-layout {
+  height: calc(0.25rem * 7) !important;
+  flex-shrink: 0;
+}
+
+.div-layout-4 {
+  height: calc(0.25rem * 56);
+  overflow-y: auto;
+}
+
+.p-layout {
+  margin: 0;
+  padding-inline: 0.75rem;
+  padding-block: 0.5rem;
+  font-size: var(--mat-sys-body-small-size);
+  line-height: var(--mat-sys-body-small-line-height);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.button-layout-2 {
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.5rem;
+  border-style: solid;
+  border-width: 0px;
+  background-color: transparent;
+  padding-inline: 0.75rem;
+  padding-block: 0.25rem;
+  text-align: left;
+  color: var(--mat-sys-on-surface);
+}
+
+@media (hover: hover) {
+  .button-layout-2:hover {
+    background-color: currentcolor;
+  }
+  @supports (color: color-mix(in lab, red, red)) {
+    .button-layout-2:hover {
+      background-color: color-mix(in srgb, currentcolor 8%, transparent);
+    }
+  }
+}
+
+.icon-layout {
+  flex-shrink: 0;
+  font-size: 18px !important;
+  line-height: 1.5556 !important;
+}
+
+.span-layout-3 {
+  min-width: 0px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--weiff-mono-font);
+  font-size: 13px;
+}
+
+.span-layout-4 {
+  flex-shrink: 0;
+  font-size: var(--mat-sys-label-medium-size);
+  line-height: var(--mat-sys-label-medium-line-height);
+  color: var(--mat-sys-primary);
+}
+
+.dialog-actions-layout {
+  gap: 0.5rem;
+}
+
+.is-repository {
+  color: var(--mat-sys-primary);
+}

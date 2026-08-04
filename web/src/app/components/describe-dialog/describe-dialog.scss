@@ -1,0 +1,27 @@
+.span-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dialog-content-layout {
+  overflow-x: hidden;
+}
+
+.div-layout {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.form-field-layout {
+  width: 100%;
+}
+
+.dialog-actions-layout {
+  gap: 0.5rem;
+}

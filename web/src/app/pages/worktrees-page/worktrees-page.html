@@ -1,0 +1,128 @@
+<main class="main-layout">
+  <header class="header-layout">
+    <div class="div-layout">
+      <h1 class="h1-layout">Workspaces</h1>
+      <p class="p-layout">
+        Manage independent working copies for {{ dashboard.selectedRepoLabel() }}.
+      </p>
+    </div>
+
+    <button
+      mat-flat-button
+      type="button"
+      class="button-layout"
+      [disabled]="dashboard.loading()"
+      (click)="openCreateWorkspaceDialog()"
+    >
+      <mat-icon>add</mat-icon>
+      Add workspace
+    </button>
+  </header>
+
+  @if (dashboard.error(); as error) {
+    <mat-card appearance="outlined" class="card-layout">
+      <mat-card-content class="card-content-layout">
+        <mat-icon class="icon-layout">error</mat-icon>
+        <span>{{ error }}</span>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (dashboard.workspacesResource.isLoading() && !dashboard.workspacesResource.hasValue()) {
+    <div class="div-layout-2">
+      <mat-spinner diameter="32" />
+    </div>
+  } @else if (workspaces().length === 0) {
+    <mat-card appearance="outlined" class="card-layout-2">
+      <mat-card-content class="card-content-layout-2">
+        <mat-icon class="icon-layout-2">workspaces</mat-icon>
+        <span>No workspaces</span>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <section class="section-layout" aria-label="Workspaces">
+      @for (workspace of workspaces(); track workspace.name) {
+        <mat-card
+          appearance="outlined"
+          class="workspace-card workspace-card-layout"
+          [title]="workspaceTitle(workspace)"
+        >
+          <mat-card-header class="card-header-layout">
+            <mat-icon mat-card-avatar class="icon-layout-3">workspaces</mat-icon>
+            <mat-card-title class="card-title-layout">
+              <span class="span-layout">
+                {{ workspace.name }}
+              </span>
+            </mat-card-title>
+            <mat-card-subtitle class="card-subtitle-layout">
+              <span class="span-layout-2">
+                <mat-icon class="icon-layout-4">folder</mat-icon>
+                <span class="span-layout-3">
+                  {{ workspace.root }}
+                </span>
+              </span>
+            </mat-card-subtitle>
+
+            @if (workspace.current) {
+              <mat-chip-set class="chip-set-layout" aria-label="Current workspace">
+                <mat-chip highlighted class="chip-layout">
+                  <mat-icon matChipAvatar>radio_button_checked</mat-icon>
+                  Current
+                </mat-chip>
+              </mat-chip-set>
+            }
+          </mat-card-header>
+
+          <mat-card-content class="card-content-layout-3">
+            <div class="div-layout-3">
+              <div class="div-layout-4">
+                <span class="span-layout-4">&#64;</span>
+                <code class="code-layout">
+                  {{ workspace.shortChangeId || workspace.changeId || 'unknown' }}
+                </code>
+                <code class="code-layout-2">
+                  {{ workspace.shortTarget || workspace.target || 'unknown' }}
+                </code>
+              </div>
+              <div class="div-layout-5" [title]="workspace.summary || workspace.description">
+                {{ workspace.summary || workspace.description || '(no description set)' }}
+              </div>
+            </div>
+          </mat-card-content>
+
+          <mat-card-actions align="end" class="card-actions-layout">
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Open workspace"
+              [attr.aria-label]="'Open workspace ' + workspace.name"
+              (click)="openWorkspace(workspace.root)"
+            >
+              <mat-icon>folder_open</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Open revision"
+              [attr.aria-label]="'Open revision for ' + workspace.name"
+              (click)="openRevision(workspace)"
+            >
+              <mat-icon>tag</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              class="button-layout-2"
+              matTooltip="Forget workspace"
+              [disabled]="workspace.current"
+              [attr.aria-label]="'Forget workspace ' + workspace.name"
+              (click)="forgetWorkspace(workspace.name)"
+            >
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </section>
+  }
+</main>

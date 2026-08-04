@@ -1,0 +1,227 @@
+<main class="main-layout">
+  <section class="section-layout">
+    <div class="div-layout">
+      <h1 class="h1-layout">Operation Log</h1>
+      <p class="p-layout">
+        Track repository mutation history for
+        <span class="span-layout" [title]="dashboard.effectiveRepoPath()">
+          {{ dashboard.selectedRepoLabel() }}
+        </span>
+      </p>
+    </div>
+
+    <button
+      mat-flat-button
+      type="button"
+      class="danger-filled-button"
+      [disabled]="dashboard.loading()"
+      (click)="dashboard.undoLastOperation()"
+    >
+      <mat-icon>undo</mat-icon>
+      Undo last operation
+    </button>
+  </section>
+
+  @if (dashboard.error(); as error) {
+    <mat-card appearance="outlined" class="card-layout">
+      <mat-card-content class="card-content-layout">
+        <mat-icon>error</mat-icon>
+        <span>{{ error }}</span>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <mat-card appearance="outlined" class="card-layout-2">
+    <mat-card-content class="card-content-layout-2">
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Filter operations</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          spellcheck="false"
+          placeholder="Search operations, users, commands, or IDs"
+          [value]="filter()"
+          (input)="setFilter($event)"
+        />
+        @if (filter().trim() !== '') {
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            aria-label="Clear operation filter"
+            (click)="clearFilter()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+    </mat-card-content>
+
+    <mat-card-content class="card-content-layout-3">
+      @if (dashboard.operationsResource.isLoading() && !dashboard.operationsResource.hasValue()) {
+        <div class="div-layout-2">
+          <mat-spinner diameter="32" />
+        </div>
+      } @else if (operations().length === 0) {
+        <div class="div-layout-2">No operations</div>
+      } @else if (filteredOperations().length === 0) {
+        <div class="div-layout-2">No operations match the filter</div>
+      } @else {
+        <div class="div-layout-3">
+          <table mat-table [dataSource]="pagedOperations()" class="table-layout">
+            <ng-container matColumnDef="operation">
+              <th mat-header-cell *matHeaderCellDef class="th-layout">ID</th>
+              <td mat-cell *matCellDef="let operation" class="td-layout">
+                <code class="code-layout">
+                  {{ operation.shortId }}
+                </code>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="user">
+              <th mat-header-cell *matHeaderCellDef>User</th>
+              <td mat-cell *matCellDef="let operation" class="td-layout-2">
+                <div class="div-layout-4" [title]="operation.user || 'unknown user'">
+                  <span class="span-layout-2">
+                    {{ userInitials(operation) }}
+                  </span>
+                  <span class="span-layout-3">
+                    {{ userDisplay(operation) }}
+                  </span>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="time">
+              <th mat-header-cell *matHeaderCellDef>Time</th>
+              <td mat-cell *matCellDef="let operation" class="td-layout-3">
+                <span [title]="formattedTime(operation)">
+                  {{ relativeTime(operation) }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let operation" class="td-layout-4">
+                <mat-chip-set aria-label="Operation status" [title]="operationTitle(operation)">
+                  <mat-chip [highlighted]="operation.current">
+                    <mat-icon matChipAvatar>
+                      {{
+                        operation.current ? 'adjust' : operation.root ? 'account_tree' : 'history'
+                      }}
+                    </mat-icon>
+                    {{ statusLabel(operation) }}
+                  </mat-chip>
+                </mat-chip-set>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef>Description</th>
+              <td mat-cell *matCellDef="let operation" class="td-layout-5">
+                <div
+                  class="div-layout-5"
+                  [title]="
+                    operation.description +
+                    (operation.attributes ? '\n' + operation.attributes : '')
+                  "
+                >
+                  <div class="div-layout-6">
+                    {{ operation.description }}
+                  </div>
+                  @if (operation.attributes) {
+                    <div class="div-layout-7">
+                      {{ operation.attributes }}
+                    </div>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="th-layout-2">Actions</th>
+              <td mat-cell *matCellDef="let operation" class="td-layout-6">
+                <button
+                  mat-icon-button
+                  type="button"
+                  [matMenuTriggerFor]="operationMenu"
+                  [attr.aria-label]="'Operation actions for ' + operation.shortId"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #operationMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="copyOperationID(operation)">
+                    <mat-icon>content_copy</mat-icon>
+                    <span>Copy operation ID</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    type="button"
+                    [disabled]="commandText(operation) === ''"
+                    (click)="copyCommand(operation)"
+                  >
+                    <mat-icon>terminal</mat-icon>
+                    <span>Copy command</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    type="button"
+                    [disabled]="operation.parents.length === 0"
+                    (click)="copyParentIDs(operation)"
+                  >
+                    <mat-icon>account_tree</mat-icon>
+                    <span>Copy parent IDs</span>
+                  </button>
+                  <mat-divider />
+                  <button
+                    mat-menu-item
+                    type="button"
+                    [disabled]="operation.current || operation.root || dashboard.loading()"
+                    (click)="restoreOperation(operation)"
+                  >
+                    <mat-icon>settings_backup_restore</mat-icon>
+                    <span>Restore here</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="operationColumns; sticky: true"></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: operationColumns"
+              class="operation-row operation-row-layout"
+              [title]="operationTitle(row)"
+            ></tr>
+          </table>
+        </div>
+
+        <div class="pagination-footer">
+          <mat-paginator
+            class="paginator-layout"
+            [length]="filteredOperations().length"
+            [pageIndex]="pageIndex()"
+            [pageSize]="page().pageSize"
+            [pageSizeOptions]="pageSizeOptions"
+            showFirstLastButtons
+            aria-label="Operation log pagination"
+            (page)="setPage($event)"
+          />
+          @if (dashboard.hasMoreOperations()) {
+            <button
+              mat-button
+              type="button"
+              class="load-older-button"
+              [disabled]="dashboard.operationsResource.isLoading()"
+              (click)="loadOlderOperations()"
+            >
+              <mat-icon>history</mat-icon>
+              Load older
+            </button>
+          }
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</main>

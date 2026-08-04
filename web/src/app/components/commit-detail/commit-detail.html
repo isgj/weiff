@@ -1,0 +1,358 @@
+@if (commit(); as selected) {
+  <mat-expansion-panel
+    class="commit-card commit-card-layout"
+    [expanded]="detailsExpanded()"
+    [hideToggle]="true"
+    (opened)="setDetailsExpanded(true)"
+    (closed)="setDetailsExpanded(false)"
+  >
+    <mat-expansion-panel-header
+      class="commit-card-header expansion-panel-header-layout"
+      collapsedHeight="82px"
+      expandedHeight="82px"
+    >
+      <mat-panel-title class="commit-title commit-title-layout">
+        <mat-icon class="icon-layout">{{
+          detailsExpanded() ? 'keyboard_arrow_down' : 'chevron_right'
+        }}</mat-icon>
+        <span class="span-layout">
+          {{ selected.summary || '(no description set)' }}
+        </span>
+      </mat-panel-title>
+
+      <mat-panel-description
+        class="commit-tools commit-tools-layout"
+        aria-label="Selected commit tools"
+      >
+        <button
+          mat-icon-button
+          type="button"
+          matTooltip="Copy commit ID"
+          aria-label="Copy commit ID"
+          (click)="$event.stopPropagation(); copyCommitId()"
+        >
+          <mat-icon>content_copy</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          matTooltip="More actions"
+          aria-label="More actions"
+          [matMenuTriggerFor]="commitMenu"
+          (click)="$event.stopPropagation()"
+        >
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #commitMenu="matMenu">
+          <button mat-menu-item type="button" (click)="copyChangeId()">
+            <mat-icon>fingerprint</mat-icon>
+            <span>Copy change ID</span>
+          </button>
+          <button mat-menu-item type="button" (click)="copyCommitId()">
+            <mat-icon>tag</mat-icon>
+            <span>Copy commit ID</span>
+          </button>
+          <button mat-menu-item type="button" (click)="editDescription()" [disabled]="loading()">
+            <mat-icon>edit_note</mat-icon>
+            <span>Edit description</span>
+          </button>
+          <button mat-menu-item type="button" (click)="newFrom()" [disabled]="loading()">
+            <mat-icon>add_circle</mat-icon>
+            <span>New commit</span>
+          </button>
+          <button mat-menu-item type="button" (click)="rebase()" [disabled]="loading()">
+            <mat-icon>call_split</mat-icon>
+            <span>Rebase onto trunk</span>
+          </button>
+        </mat-menu>
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+
+    <nav
+      mat-tab-nav-bar
+      class="change-info-tabs change-info-tabs-layout"
+      [tabPanel]="changeInfoPanel"
+    >
+      <a
+        mat-tab-link
+        href=""
+        [active]="selectedInfoTab() === 0"
+        (click)="$event.preventDefault(); setInfoTab(0)"
+      >
+        Overview
+      </a>
+      <a
+        mat-tab-link
+        href=""
+        [active]="selectedInfoTab() === 1"
+        (click)="$event.preventDefault(); setInfoTab(1)"
+      >
+        Evolution Log
+      </a>
+    </nav>
+    <mat-tab-nav-panel #changeInfoPanel>
+      @if (selectedInfoTab() === 0) {
+        <section
+          class="commit-details commit-details-layout"
+          [class.has-message-body]="hasMessageBody()"
+        >
+          @if (hasMessageBody()) {
+            <section
+              class="message-surface markdown-body message-surface-layout"
+              aria-label="Commit message body"
+              [innerHTML]="messageBody().trim() | markdown"
+            ></section>
+          }
+
+          <section class="section-layout" aria-label="Selected commit metadata">
+            <div class="id-chip-row id-chip-row-layout">
+              <span class="id-chip id-chip-layout" [title]="selected.changeId">
+                <mat-icon class="icon-layout-2"> fingerprint </mat-icon>
+                <code class="code-layout">{{ selected.shortChangeId }}</code>
+              </span>
+              <span class="id-chip id-chip-layout" [title]="selected.commitId">
+                <mat-icon class="icon-layout-2">tag</mat-icon>
+                <code class="code-layout">{{ selected.shortCommitId }}</code>
+              </span>
+              @if (selected.current) {
+                <span class="state-pill state-pill-layout">
+                  <mat-icon class="icon-layout-2">adjust</mat-icon>
+                  Current
+                </span>
+              }
+              @if (selected.divergent) {
+                <span
+                  class="state-pill divergent-pill state-pill-layout-2"
+                  [title]="divergentTitle(selected)"
+                >
+                  <mat-icon class="icon-layout-3">warning</mat-icon>
+                  Divergent
+                </span>
+              }
+              @if (selected.empty) {
+                <span class="state-pill state-pill-layout">
+                  <mat-icon class="icon-layout-2"> radio_button_unchecked </mat-icon>
+                  Empty
+                </span>
+              }
+            </div>
+
+            <div class="person-time-row person-time-row-layout">
+              <span class="icon-meta icon-meta-layout" [title]="authorLine()">
+                <mat-icon class="icon-layout-2">person</mat-icon>
+                <strong>{{ selected.authorName || 'unknown author' }}</strong>
+              </span>
+              <span
+                class="icon-meta icon-meta-layout"
+                [title]="selected.authorTimestamp || authoredAt()"
+              >
+                <mat-icon class="icon-layout-2"> calendar_today </mat-icon>
+                <strong>{{ authoredAt() }}</strong>
+              </span>
+            </div>
+          </section>
+
+          <section
+            class="bookmarks-row bookmarks-row-layout"
+            aria-label="Selected commit bookmarks"
+          >
+            <h2 class="h2-layout">Bookmarks</h2>
+            <div class="bookmark-strip bookmark-strip-layout" [title]="selectedBookmarkTitle()">
+              @for (bookmark of selectedBookmarks(); track bookmark.name) {
+                <span
+                  class="bookmark-pill bookmark-pill-layout"
+                  [title]="bookmarkTitle(bookmark, selected)"
+                >
+                  <mat-icon class="icon-layout-2">bookmark</mat-icon>
+                  <span class="span-layout-2">{{ bookmark.name }}</span>
+                  <button
+                    mat-icon-button
+                    class="button-layout"
+                    type="button"
+                    matTooltip="Bookmark actions"
+                    aria-label="Bookmark actions"
+                    [matMenuTriggerFor]="bookmarkMenu"
+                  >
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                </span>
+                <mat-menu #bookmarkMenu="matMenu">
+                  <button
+                    mat-menu-item
+                    type="button"
+                    (click)="bookmarkPushed.emit(bookmark.name)"
+                    [disabled]="loading()"
+                  >
+                    <mat-icon>cloud_upload</mat-icon>
+                    <span>Push</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    type="button"
+                    (click)="bookmarkDeleted.emit(bookmark.name)"
+                    [disabled]="loading()"
+                  >
+                    <mat-icon>delete_outline</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </mat-menu>
+              } @empty {
+                <span class="empty-bookmarks empty-bookmarks-layout">No bookmarks</span>
+              }
+
+              <button
+                mat-button
+                class="add-bookmark-button add-bookmark-button-layout"
+                type="button"
+                (click)="openBookmarkDialog()"
+                [disabled]="loading()"
+              >
+                <mat-icon>bookmark_add</mat-icon>
+                Add
+              </button>
+            </div>
+          </section>
+        </section>
+
+        <div class="commit-actions commit-actions-layout">
+          <div class="commit-primary-actions commit-primary-actions-layout">
+            <button
+              mat-flat-button
+              type="button"
+              (click)="checkout()"
+              [disabled]="selected.current || loading()"
+            >
+              <mat-icon>check_circle</mat-icon>
+              Checkout
+            </button>
+            <button mat-stroked-button type="button" (click)="newFrom()" [disabled]="loading()">
+              <mat-icon>add_circle</mat-icon>
+              New Commit
+            </button>
+            <button mat-stroked-button type="button" (click)="rebase()" [disabled]="loading()">
+              <mat-icon>call_split</mat-icon>
+              Rebase
+            </button>
+          </div>
+          <button
+            mat-stroked-button
+            class="danger-action danger-action-layout"
+            type="button"
+            (click)="abandon()"
+            [disabled]="loading()"
+          >
+            <mat-icon>delete_outline</mat-icon>
+            Abandon
+          </button>
+        </div>
+      } @else {
+        <section class="evolution-log evolution-log-layout" aria-label="Evolution log">
+          @if (evolutionLoading()) {
+            <div class="div-layout">
+              <mat-spinner diameter="32"></mat-spinner>
+            </div>
+          } @else if (evolutionError(); as message) {
+            <div class="div-layout-2" role="alert">
+              {{ message }}
+            </div>
+          } @else if (evolutionEntries().length > 0) {
+            <div class="div-layout-3">
+              <table
+                mat-table
+                class="evolution-table evolution-table-layout"
+                [dataSource]="evolutionEntries()"
+              >
+                <ng-container matColumnDef="operation">
+                  <th mat-header-cell *matHeaderCellDef>Operation</th>
+                  <td mat-cell *matCellDef="let entry" [title]="operationTitle(entry)">
+                    <div class="div-layout-4">
+                      <mat-icon class="icon-layout-4">history</mat-icon>
+                      <div class="div-layout-5">
+                        <div class="div-layout-6">
+                          {{ entry.operationDescription || 'No operation description' }}
+                        </div>
+                        <code class="code-layout-2">{{ entry.shortOperationId }}</code>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="commit">
+                  <th mat-header-cell *matHeaderCellDef>Commit</th>
+                  <td mat-cell *matCellDef="let entry" [title]="entry.commitId">
+                    <div class="div-layout-7">
+                      <code class="code-layout-3">{{ entry.shortCommitId }}</code>
+                      <code class="code-layout-4">{{ entry.shortChangeId }}</code>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="summary">
+                  <th mat-header-cell *matHeaderCellDef>Summary</th>
+                  <td mat-cell *matCellDef="let entry" [title]="entry.description || entry.summary">
+                    <span class="span-layout-3">
+                      {{ entry.summary || '(no description set)' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="author">
+                  <th mat-header-cell *matHeaderCellDef>Author</th>
+                  <td mat-cell *matCellDef="let entry" [title]="evolutionAuthorTitle(entry)">
+                    <span class="span-layout-4">
+                      <mat-icon class="icon-layout-5"> person </mat-icon>
+                      <span class="span-layout-5">{{ entry.authorName || 'unknown author' }}</span>
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="time">
+                  <th mat-header-cell *matHeaderCellDef>Time</th>
+                  <td mat-cell *matCellDef="let entry" [title]="entry.operationTimestamp">
+                    <span class="span-layout-4">
+                      <mat-icon class="icon-layout-5"> calendar_today </mat-icon>
+                      <span class="span-layout-5">{{
+                        formatEntryTimestamp(entry.operationTimestamp)
+                      }}</span>
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="stats">
+                  <th mat-header-cell *matHeaderCellDef>Files</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <span class="span-layout-6">
+                      <span>{{ entry.filesChanged }}</span>
+                      @if (entry.totalAdded > 0) {
+                        <span class="span-layout-7">+{{ entry.totalAdded }}</span>
+                      }
+                      @if (entry.totalRemoved > 0) {
+                        <span class="span-layout-8"> -{{ entry.totalRemoved }} </span>
+                      }
+                    </span>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="evolutionColumns; sticky: true"></tr>
+                <tr
+                  mat-row
+                  class="tr-layout"
+                  *matRowDef="let row; columns: evolutionColumns"
+                  [class.is-selected]="row.commitId === selectedEvolutionCommitId()"
+                  [title]="evolutionRowTitle(row)"
+                  (click)="selectEvolutionEntry(row)"
+                ></tr>
+              </table>
+            </div>
+          } @else {
+            <div class="div-layout-8">No evolution entries for this change.</div>
+          }
+        </section>
+      }
+    </mat-tab-nav-panel>
+  </mat-expansion-panel>
+} @else {
+  <section class="commit-card empty-card commit-card-layout-2">
+    <div class="empty-commit empty-commit-layout">Select a commit to inspect.</div>
+  </section>
+}

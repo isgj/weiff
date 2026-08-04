@@ -1,0 +1,144 @@
+<section class="panel panel-layout">
+  <header class="panel-header panel-header-layout">
+    <div>
+      <h2 class="h2-layout">Commit Graph</h2>
+      <p class="p-layout">{{ commits().length }} revisions</p>
+    </div>
+  </header>
+
+  <mat-divider class="header-divider" />
+
+  <mat-nav-list class="commit-list commit-list-layout" role="listbox" aria-label="Commit graph">
+    @for (group of groups(); track group.key) {
+      @if (group.commit; as commit) {
+        <mat-list-item
+          class="change-group change-group-layout node-row"
+          lines="2"
+          [activated]="commit.commitId === selectedCommitId()"
+          [class.selected]="commit.commitId === selectedCommitId()"
+          [class.current]="commit.commitId === currentCommitId()"
+          role="option"
+          [attr.aria-selected]="commit.commitId === selectedCommitId()"
+          tabindex="0"
+          [title]="group.title"
+          (click)="select(commit)"
+          (keydown.enter)="select(commit)"
+          (keydown.space)="select(commit); $event.preventDefault()"
+        >
+          <span matListItemIcon class="graph-stack graph-stack-layout" aria-hidden="true">
+            @for (row of group.rows; track row.key) {
+              <app-graph-svg
+                [gutter]="row.graph"
+                [gutterWidth]="graphWidth()"
+                [divergent]="row.kind === 'node' && commit.divergent === true"
+                [height]="32"
+              />
+            }
+          </span>
+
+          <span matListItemTitle [title]="group.title">
+            <span class="summary-line summary-line-layout">
+              <strong class="strong-layout">{{ commit.summary }}</strong>
+              @if (commit.divergent) {
+                <mat-icon
+                  class="divergent-icon divergent-icon-layout"
+                  [matTooltip]="divergentTitle(commit)"
+                  aria-label="Divergent change"
+                >
+                  warning
+                </mat-icon>
+              }
+            </span>
+          </span>
+
+          <span matListItemLine>
+            <span class="commit-meta commit-meta-layout">
+              <code
+                [class.has-error]="commit.divergent"
+                [class.has-default-color]="!commit.divergent"
+                [title]="
+                  commit.divergent ? divergentTitle(commit) : idTitle('Change ID', commit.changeId)
+                "
+                >{{ changeLabel(commit) }}</code
+              >
+              <span [title]="commit.authorEmail || commit.authorName">{{
+                commit.authorName || 'unknown author'
+              }}</span>
+              <span [title]="commit.authorTimestamp || authoredAt(commit)">{{
+                authoredAt(commit)
+              }}</span>
+            </span>
+          </span>
+
+          <span matListItemMeta class="change-actions change-actions-layout">
+            <button
+              mat-icon-button
+              class="change-menu-button"
+              type="button"
+              matTooltip="Change actions"
+              aria-label="Change actions"
+              [matMenuTriggerFor]="changeActions"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+          </span>
+        </mat-list-item>
+
+        <mat-menu #changeActions="matMenu">
+          <a
+            mat-menu-item
+            routerLink="/files"
+            [queryParams]="{
+              rev: commit.changeId || commit.commitId,
+              commitId: commit.commitId,
+              path: null,
+            }"
+            queryParamsHandling="merge"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>folder_open</mat-icon>
+            <span>Show files</span>
+          </a>
+          <button
+            mat-menu-item
+            type="button"
+            (click)="checkout(commit, $event)"
+            [disabled]="commit.current"
+          >
+            <mat-icon>login</mat-icon>
+            <span>Check out</span>
+          </button>
+          <button mat-menu-item type="button" (click)="abandon(commit, $event)">
+            <mat-icon>delete_outline</mat-icon>
+            <span>Abandon</span>
+          </button>
+          <button mat-menu-item type="button" (click)="newFrom(commit, $event)">
+            <mat-icon>add_circle</mat-icon>
+            <span>New from this</span>
+          </button>
+          <button mat-menu-item type="button" (click)="rebase(commit, $event)">
+            <mat-icon>call_split</mat-icon>
+            <span>Rebase onto trunk</span>
+          </button>
+        </mat-menu>
+      } @else {
+        @for (row of group.rows; track row.key) {
+          <div class="connector-row connector-row-layout" role="presentation">
+            <app-graph-svg [gutter]="row.graph" [gutterWidth]="graphWidth()" [height]="22" />
+            @if (row.content !== '') {
+              <span class="connector-label connector-label-layout" [title]="row.content">
+                {{ row.content }}
+              </span>
+            } @else {
+              <span></span>
+            }
+            <span></span>
+          </div>
+        }
+      }
+    } @empty {
+      <div class="empty-state empty-state-layout">No revisions returned.</div>
+    }
+  </mat-nav-list>
+</section>

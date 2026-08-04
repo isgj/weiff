@@ -1,0 +1,76 @@
+<h2 mat-dialog-title>
+  <span class="span-layout">
+    <span>Create workspace</span>
+    <button mat-icon-button type="button" aria-label="Close dialog" (click)="cancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </span>
+</h2>
+
+<form (submit)="save(); $event.preventDefault()">
+  <mat-dialog-content class="dialog-content-layout">
+    <div class="div-layout">
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Directory</mat-label>
+        <mat-icon matPrefix>folder</mat-icon>
+        <input
+          matInput
+          class="input-layout"
+          spellcheck="false"
+          placeholder="~/dev/my-workspace"
+          [formField]="f.destination"
+        />
+        @if (f.destination().touched() && f.destination().errors().length > 0) {
+          <mat-error>{{ f.destination().errors()[0].message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Name</mat-label>
+        <mat-icon matPrefix>badge</mat-icon>
+        <input matInput spellcheck="false" placeholder="feature-work" [formField]="f.name" />
+      </mat-form-field>
+
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Parent revision</mat-label>
+        <mat-icon matPrefix>tag</mat-icon>
+        <input
+          matInput
+          class="input-layout"
+          spellcheck="false"
+          [placeholder]="parentRevisionPlaceholder()"
+          [formField]="f.revision"
+        />
+      </mat-form-field>
+
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Sparse mode</mat-label>
+        <mat-select [formField]="f.sparseMode">
+          <mat-select-trigger>{{ selectedSparseOption().label }}</mat-select-trigger>
+          @for (option of sparseOptions; track option.value) {
+            <mat-option [value]="option.value">
+              <span class="span-layout-2">
+                <mat-icon>{{ option.icon }}</mat-icon>
+                <span>{{ option.label }}</span>
+              </span>
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Description</mat-label>
+        <mat-icon matPrefix>subject</mat-icon>
+        <input matInput [formField]="f.message" />
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions-layout">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button type="submit" [disabled]="!canCreateWorkspace()">
+      <mat-icon>add</mat-icon>
+      Create workspace
+    </button>
+  </mat-dialog-actions>
+</form>

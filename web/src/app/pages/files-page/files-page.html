@@ -1,0 +1,182 @@
+<main class="files-page">
+  <header class="page-header">
+    <div>
+      <h1>Files</h1>
+      <p>
+        @if (isWorkingCopyRevision()) {
+          Working-copy files in
+        } @else {
+          Files at revision
+          <code [title]="dashboard.selectedRev()">{{
+            shortRevision(dashboard.selectedRev())
+          }}</code>
+          in
+        }
+        <span class="repo-label" [title]="dashboard.effectiveRepoPath()">
+          {{ dashboard.selectedRepoLabel() }}
+        </span>
+      </p>
+    </div>
+  </header>
+
+  <section class="file-browser" aria-label="Repository files">
+    <nav class="breadcrumbs" aria-label="Repository path">
+      @if (breadcrumbs().length === 0) {
+        <span class="breadcrumb-link current-breadcrumb" aria-current="page">
+          <mat-icon>folder_open</mat-icon>
+          <span>{{ dashboard.selectedRepoLabel() }}</span>
+        </span>
+      } @else {
+        <a
+          class="breadcrumb-link"
+          routerLink="/files"
+          [queryParams]="{ path: null }"
+          queryParamsHandling="merge"
+          title="Repository root"
+        >
+          <mat-icon>folder_open</mat-icon>
+          <span>{{ dashboard.selectedRepoLabel() }}</span>
+        </a>
+      }
+
+      @for (breadcrumb of breadcrumbs(); track breadcrumb.path) {
+        <mat-icon class="breadcrumb-separator" aria-hidden="true">chevron_right</mat-icon>
+        @if ($last) {
+          <span
+            class="breadcrumb-link current-breadcrumb"
+            aria-current="page"
+            [title]="breadcrumb.path"
+          >
+            {{ breadcrumb.label }}
+          </span>
+        } @else {
+          <a
+            class="breadcrumb-link"
+            routerLink="/files"
+            [queryParams]="{ path: breadcrumb.path }"
+            queryParamsHandling="merge"
+            [title]="breadcrumb.path"
+          >
+            {{ breadcrumb.label }}
+          </a>
+        }
+      }
+    </nav>
+
+    @if (dashboard.error(); as error) {
+      <div class="browser-state error-state" role="alert">
+        <mat-icon>error</mat-icon>
+        <span>{{ error }}</span>
+        <div class="state-actions">
+          <button mat-stroked-button type="button" (click)="dashboard.refresh()">
+            <mat-icon>refresh</mat-icon>
+            Retry
+          </button>
+          @if (dashboard.repositoryFilePath() !== '') {
+            <a
+              mat-button
+              routerLink="/files"
+              [queryParams]="{ path: null }"
+              queryParamsHandling="merge"
+            >
+              <mat-icon>folder_open</mat-icon>
+              Repository root
+            </a>
+          }
+        </div>
+      </div>
+    } @else if (
+      dashboard.repositoryFilesResource.isLoading() && !dashboard.repositoryFilesResource.hasValue()
+    ) {
+      <div class="browser-state">
+        <mat-spinner diameter="36" aria-label="Loading repository files" />
+      </div>
+    } @else if (dashboard.effectiveRepoPath() === '') {
+      <div class="browser-state">
+        <mat-icon>folder_off</mat-icon>
+        <span>No repository selected.</span>
+      </div>
+    } @else if (state(); as repositoryPath) {
+      @if (repositoryPath.kind === 'directory') {
+        @if (repositoryPath.entries.length === 0) {
+          <div class="browser-state">
+            <mat-icon>folder_open</mat-icon>
+            <span>No files in this directory.</span>
+          </div>
+        } @else {
+          <ul class="file-list" aria-label="Directory contents">
+            @for (entry of repositoryPath.entries; track entry.path) {
+              <li>
+                <a
+                  class="file-entry"
+                  routerLink="/files"
+                  [queryParams]="{ path: entry.path }"
+                  queryParamsHandling="merge"
+                  [attr.aria-label]="
+                    'Open ' + entryKindLabel(entry).toLowerCase() + ' ' + entry.name
+                  "
+                >
+                  <mat-icon
+                    class="entry-icon"
+                    [class.conflict-icon]="entry.conflict || entry.kind === 'conflict'"
+                  >
+                    {{ entryIcon(entry) }}
+                  </mat-icon>
+                  <span class="entry-name" [title]="entry.name">{{ entry.name }}</span>
+                  <span class="entry-kind">
+                    {{ entry.executable ? 'Executable file' : entryKindLabel(entry) }}
+                  </span>
+                  <mat-icon class="open-icon" aria-hidden="true">chevron_right</mat-icon>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      } @else {
+        <header class="file-header">
+          <mat-icon
+            class="file-icon"
+            [class.conflict-icon]="repositoryPath.conflict || repositoryPath.kind === 'conflict'"
+          >
+            {{ entryIcon(repositoryPath) }}
+          </mat-icon>
+          <div class="file-heading">
+            <h2 [title]="repositoryPath.path">{{ fileName(repositoryPath) }}</h2>
+            <p>
+              <span>{{ entryKindLabel(repositoryPath) }}</span>
+              @if (repositoryPath.executable) {
+                <span>Executable</span>
+              }
+              <code [title]="repositoryPath.rev">
+                {{ isWorkingCopyRevision() ? '@ ' : '' }}{{ shortRevision(repositoryPath.rev) }}
+              </code>
+            </p>
+          </div>
+        </header>
+
+        @if (repositoryPath.truncated) {
+          <div class="browser-state">
+            <mat-icon>data_object</mat-icon>
+            <span>File preview is limited to {{ previewLimit(repositoryPath.maxBytes) }}.</span>
+          </div>
+        } @else if (repositoryPath.binary) {
+          <div class="browser-state">
+            <mat-icon>unknown_document</mat-icon>
+            <span>Binary files cannot be previewed.</span>
+          </div>
+        } @else {
+          <div
+            class="file-content"
+            tabindex="0"
+            [attr.aria-label]="'Contents of ' + repositoryPath.path"
+          >
+            <pre class="line-number-gutter" aria-hidden="true">{{ lineNumbers() }}</pre>
+            <pre
+              class="source-content"
+            ><code class="syntax-code" [innerHTML]="highlightedContent()"></code></pre>
+          </div>
+        }
+      }
+    }
+  </section>
+</main>
