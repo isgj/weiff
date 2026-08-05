@@ -56,7 +56,9 @@ npm run build
 
 ## Release
 
-`.github/workflows/release.yml` runs the verified build path on pushes to `main` and publishes:
+Run `.github/workflows/release.yml` manually from the `main` branch and enter the semantic version
+without a `v` prefix, for example `0.2.0`. The workflow verifies and builds that exact commit, creates
+the required `v0.2.0` Git tag, and publishes:
 
 - `weiff-linux-amd64`
 - `weiff-linux-arm64`
