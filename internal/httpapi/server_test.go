@@ -322,6 +322,25 @@ func TestHandleDiffError(t *testing.T) {
 	}
 }
 
+func TestHandleDiffDeadlineExceeded(t *testing.T) {
+	client := fakeClient{diffErr: context.DeadlineExceeded}
+	req := newRequest(http.MethodGet, "/api/diff", nil)
+	rec := httptest.NewRecorder()
+
+	newTestServer(t, &client).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusGatewayTimeout {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusGatewayTimeout)
+	}
+	var got errorResponse
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if got.Error != "internal server error" || got.Code != "timeout" {
+		t.Fatalf("error = %#v", got)
+	}
+}
+
 func TestHandleEvolutionLog(t *testing.T) {
 	client := fakeClient{
 		evolutionResult: repo.EvolutionLogResult{
@@ -365,6 +384,23 @@ func TestHandleEvolutionLog(t *testing.T) {
 	}
 	if len(got.Entries) != 1 || got.Entries[0].CommitID != "abc" {
 		t.Fatalf("entries = %+v, want abc entry", got.Entries)
+	}
+}
+
+func TestHandleEvolutionLogCanceledRequestDoesNotWriteResponse(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	client := fakeClient{evolutionErr: context.Canceled}
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/evolution-log?rev=change", nil)
+	rec := httptest.NewRecorder()
+
+	newTestServer(t, &client).Handler().ServeHTTP(rec, req)
+
+	if rec.Body.Len() != 0 {
+		t.Fatalf("response body = %q, want no response for canceled request", rec.Body.String())
+	}
+	if contentType := rec.Header().Get("Content-Type"); contentType != "" {
+		t.Fatalf("Content-Type = %q, want empty", contentType)
 	}
 }
 
@@ -1019,6 +1055,7 @@ type fakeClient struct {
 	repositoryFilesRev      string
 	repositoryFilesPath     string
 	evolutionResult         repo.EvolutionLogResult
+	evolutionErr            error
 	evolutionOpts           repo.RequestOptions
 	evolutionRev            string
 	evolutionLimit          int
@@ -1124,7 +1161,7 @@ func (f *fakeClient) EvolutionLog(_ context.Context, opts repo.RequestOptions, r
 	f.evolutionOpts = opts
 	f.evolutionRev = rev
 	f.evolutionLimit = limit
-	return f.evolutionResult, nil
+	return f.evolutionResult, f.evolutionErr
 }
 
 func (f *fakeClient) EvolutionDiff(_ context.Context, opts repo.RequestOptions, rev string, commitID string) (repo.DiffResult, error) {

@@ -3,11 +3,13 @@ package repo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDecodeJSONLinesEmptyReturnsJSONArray(t *testing.T) {
@@ -75,6 +77,53 @@ func TestRepoPathForUsesExplicitRequestWithoutReadingConfig(t *testing.T) {
 	}
 	if got != want {
 		t.Fatalf("repoPathFor() = %q, want %q", got, want)
+	}
+}
+
+func TestRunPreservesContextError(t *testing.T) {
+	dir := t.TempDir()
+	executable := filepath.Join(dir, "jj")
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\nexec sleep 10\n"), 0o755); err != nil {
+		t.Fatalf("write fake jj: %v", err)
+	}
+	client := &JJClient{repoPath: dir, executable: executable}
+
+	tests := []struct {
+		name       string
+		newContext func() (context.Context, context.CancelFunc)
+		want       error
+	}{
+		{
+			name: "deadline exceeded",
+			newContext: func() (context.Context, context.CancelFunc) {
+				return context.WithTimeout(context.Background(), 20*time.Millisecond)
+			},
+			want: context.DeadlineExceeded,
+		},
+		{
+			name: "canceled",
+			newContext: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				timer := time.AfterFunc(20*time.Millisecond, cancel)
+				return ctx, func() {
+					timer.Stop()
+					cancel()
+				}
+			},
+			want: context.Canceled,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx, cancel := test.newContext()
+			defer cancel()
+
+			_, err := client.run(ctx, dir)
+			if !errors.Is(err, test.want) {
+				t.Fatalf("run() error = %v, want %v", err, test.want)
+			}
+		})
 	}
 }
 

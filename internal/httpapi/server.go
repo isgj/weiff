@@ -245,7 +245,7 @@ func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
 	ignoreWhitespace := r.URL.Query().Get("ignoreWhitespace") == "true"
 	result, err := s.client.Diff(ctx, repoOptionsFromQuery(r), r.URL.Query().Get("rev"), ignoreWhitespace)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		writeRepositoryError(w, ctx, err)
 		return
 	}
 
@@ -287,7 +287,7 @@ func (s *Server) handleEvolutionLog(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.client.EvolutionLog(ctx, repoOptionsFromQuery(r), r.URL.Query().Get("rev"), limit)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		writeRepositoryError(w, ctx, err)
 		return
 	}
 
@@ -661,6 +661,17 @@ func writeRequestError(w http.ResponseWriter, err error) {
 	writeJSON(w, http.StatusBadRequest, errorResponse{Error: err.Error(), Code: "invalid_request"})
 }
 
+func writeRepositoryError(w http.ResponseWriter, ctx context.Context, err error) {
+	switch {
+	case errors.Is(ctx.Err(), context.Canceled):
+		return
+	case errors.Is(ctx.Err(), context.DeadlineExceeded), errors.Is(err, context.DeadlineExceeded):
+		writeJSON(w, http.StatusGatewayTimeout, errorResponse{Error: err.Error()})
+	default:
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+	}
+}
+
 func repoOptionsFromQuery(r *http.Request) repo.RequestOptions {
 	return repo.RequestOptions{
 		RepoPath: r.URL.Query().Get("repoPath"),
@@ -785,6 +796,8 @@ func errorCodeForStatus(status int) string {
 		return "unsupported_media_type"
 	case http.StatusServiceUnavailable:
 		return "service_unavailable"
+	case http.StatusGatewayTimeout:
+		return "timeout"
 	default:
 		if status >= http.StatusInternalServerError {
 			return "internal_error"

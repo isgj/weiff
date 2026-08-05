@@ -1221,6 +1221,66 @@ describe('App', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('revision A');
   });
 
+  it('should resolve refreshed state before reloading revision details', async () => {
+    history.pushState(null, '', '/revisions?rev=workingchange&commitId=oldcommit');
+    const oldCommit = revisionCommit('oldcommit', 'workingchange', { current: true });
+    const fixture = await createApp();
+    await flushState({
+      repoPath: '/tmp/repo',
+      currentCommitId: oldCommit.commitId,
+      commits: [oldCommit],
+    });
+    await settle(fixture);
+    await flushDiff({ repoPath: '/tmp/repo', rev: oldCommit.commitId });
+    await settle(fixture);
+
+    const dashboard = TestBed.inject(RevisionDashboardState);
+    expect(activeRequestURLs('/api/state')).toEqual([]);
+    expect(activeRequestURLs('/api/diff')).toEqual([]);
+    expect(activeRequestURLs('/api/evolution-log')).toEqual([]);
+    dashboard.refresh();
+    const stateRequests = await waitForRequests('/api/state');
+
+    expect(activeRequestURLs('/api/diff')).toEqual([]);
+    expect(activeRequestURLs('/api/evolution-log')).toEqual([]);
+
+    const rewrittenCommit = revisionCommit('newcommit', 'workingchange', { current: true });
+    stateRequests[0].flush({
+      repoPath: '/tmp/repo',
+      vcs: 'jj',
+      currentCommitId: rewrittenCommit.commitId,
+      commits: [rewrittenCommit],
+      graphRows: [],
+      generatedAt: '2026-06-17T12:01:00Z',
+    });
+    fixture.detectChanges();
+    await Promise.resolve();
+
+    const refreshedDiff = await waitForDiffRequest(
+      rewrittenCommit.changeId,
+      rewrittenCommit.commitId,
+    );
+    const evolutionRequests = await waitForRequests('/api/evolution-log');
+    expect(queryParam(evolutionRequests[0].request.urlWithParams, 'rev')).toBe(
+      rewrittenCommit.changeId,
+    );
+    expect(queryParam(evolutionRequests[0].request.urlWithParams, 'commitId')).toBe(
+      rewrittenCommit.commitId,
+    );
+
+    refreshedDiff.flush(emptyDiff(rewrittenCommit.commitId));
+    evolutionRequests[0].flush({
+      repoPath: '/tmp/repo',
+      vcs: 'jj',
+      rev: rewrittenCommit.commitId,
+      entries: [],
+      generatedAt: '2026-06-17T12:01:00Z',
+    });
+    await settle(fixture);
+
+    expect(dashboard.selectedCommit()?.commitId).toBe(rewrittenCommit.commitId);
+  });
+
   it('should retain the rewritten commit when its change later diverges', async () => {
     history.pushState(null, '', '/revisions?rev=sharedchange&commitId=oldcommit');
     const rewrittenCommit = revisionCommit('newcommit', 'sharedchange', {
@@ -1475,6 +1535,7 @@ describe('App', () => {
 
     await settle(fixture);
     await flushState({ repoPath: '/tmp/repo' });
+    await settle(fixture);
     await flushDiff({ repoPath: '/tmp/repo', rev: '@' });
     await settle(fixture);
   });
@@ -1860,6 +1921,10 @@ describe('App', () => {
     return http
       .match((req) => req.url.startsWith(urlPrefix) && (method == null || req.method === method))
       .filter((req) => !req.cancelled);
+  }
+
+  function activeRequestURLs(urlPrefix: string): string[] {
+    return activeRequests(urlPrefix).map((request) => request.request.urlWithParams);
   }
 
   async function flushEvolutionIfPresent(

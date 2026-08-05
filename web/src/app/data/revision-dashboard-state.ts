@@ -1,6 +1,6 @@
 import { HttpErrorResponse, httpResource } from '@angular/common/http';
 import { computed, effect, inject, linkedSignal, Service, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DiffMode } from '../components/diff-view/diff-view';
@@ -79,6 +79,7 @@ export class RevisionDashboardState {
   readonly repositoryFilePath = signal(this.queryParams.get('path') ?? '');
   private readonly activePage = signal<ActivePage>('other');
   private readonly routeActivation = signal(0);
+  private reloadRevisionDetailsAfterState = false;
 
   readonly selectedEvolutionCommitId = signal<string | null>(null);
   readonly revsetDraft = signal(this.initialLogRevset);
@@ -171,6 +172,11 @@ export class RevisionDashboardState {
   readonly state = computed(() =>
     this.stateResource.hasValue() ? this.stateResource.value() : null,
   );
+  private readonly stateRefreshOutcome = computed(() => ({
+    state: this.state(),
+    error: this.stateResource.error(),
+    isLoading: this.stateResource.isLoading(),
+  }));
   private readonly selection = linkedSignal<RevisionSelectionSource, RevisionSelection>({
     source: () => ({
       requested: this.requestedSelection(),
@@ -283,6 +289,18 @@ export class RevisionDashboardState {
   readonly error = computed(() => this.actionError() ?? this.pageError());
 
   constructor() {
+    toObservable(this.stateRefreshOutcome)
+      .pipe(takeUntilDestroyed())
+      .subscribe((outcome) => {
+        if (!this.reloadRevisionDetailsAfterState || outcome.isLoading) {
+          return;
+        }
+
+        this.reloadRevisionDetailsAfterState = false;
+        if (outcome.error == null && outcome.state != null) {
+          this.reloadRevisionDetails();
+        }
+      });
     this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
       if (event instanceof NavigationEnd) {
         const selection = revisionSelectionFromURL(event.urlAfterRedirects);
@@ -621,10 +639,7 @@ export class RevisionDashboardState {
   private reloadCurrentPage(): void {
     switch (this.activePage()) {
       case 'revisions':
-        this.stateResource.reload();
-        this.selectedCommitResource.reload();
-        this.diffResource.reload();
-        this.evolutionResource.reload();
+        this.reloadRevisions();
         break;
       case 'bookmarks':
         this.bookmarksResource.reload();
@@ -641,6 +656,21 @@ export class RevisionDashboardState {
       case 'other':
         break;
     }
+  }
+
+  private reloadRevisions(): void {
+    if (this.stateResource.reload() || this.stateResource.isLoading()) {
+      this.reloadRevisionDetailsAfterState = true;
+      return;
+    }
+
+    this.reloadRevisionDetails();
+  }
+
+  private reloadRevisionDetails(): void {
+    this.selectedCommitResource.reload();
+    this.diffResource.reload();
+    this.evolutionResource.reload();
   }
 
   private pageLoading(): boolean {

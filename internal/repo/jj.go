@@ -564,6 +564,9 @@ func (c *JJClient) runLimitedWithEnv(ctx context.Context, repoPath string, limit
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return stdout.Bytes(), stdout.Truncated(), fmt.Errorf("run %s: %w", strings.Join(append([]string{c.executable}, args...), " "), contextErr)
+		}
 		message := strings.TrimSpace(stderr.String())
 		if message == "" {
 			return stdout.Bytes(), stdout.Truncated(), fmt.Errorf("run %s: %w", strings.Join(append([]string{c.executable}, args...), " "), err)
