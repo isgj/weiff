@@ -156,7 +156,6 @@
             class="bookmarks-row bookmarks-row-layout"
             aria-label="Selected commit bookmarks"
           >
-            <h2 class="h2-layout">Bookmarks</h2>
             <div class="bookmark-strip bookmark-strip-layout" [title]="selectedBookmarkTitle()">
               @for (bookmark of selectedBookmarks(); track bookmark.name) {
                 <span
@@ -211,6 +210,19 @@
                 Add
               </button>
             </div>
+          </section>
+
+          <section class="tags-row tags-row-layout" aria-label="Selected commit tags">
+            <mat-chip-set class="tag-chip-set" aria-label="Tags on selected commit">
+              @for (tag of selected.tags; track tag) {
+                <mat-chip class="tag-chip" [title]="tag" [disableRipple]="true">
+                  <mat-icon matChipAvatar>sell</mat-icon>
+                  {{ tag }}
+                </mat-chip>
+              } @empty {
+                <span class="empty-tags empty-tags-layout">No tags</span>
+              }
+            </mat-chip-set>
           </section>
         </section>
 

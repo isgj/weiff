@@ -16,7 +16,7 @@ import (
 
 const (
 	maxDiffBytes        = 4 << 20
-	logTemplate         = `'{"commitId":' ++ json(commit_id) ++ ',"changeId":' ++ json(change_id) ++ ',"changeOffset":' ++ json(self.change_offset()) ++ ',"description":' ++ json(description) ++ ',"authorName":' ++ json(author.name()) ++ ',"authorEmail":' ++ json(author.email()) ++ ',"authorTimestamp":' ++ json(author.timestamp()) ++ ',"current":' ++ json(current_working_copy) ++ ',"empty":' ++ json(empty) ++ ',"divergent":' ++ json(self.divergent()) ++ ',"bookmarks":' ++ json(local_bookmarks.map(|b| b.name())) ++ '}' ++ "\n"`
+	logTemplate         = `'{"commitId":' ++ json(commit_id) ++ ',"changeId":' ++ json(change_id) ++ ',"changeOffset":' ++ json(self.change_offset()) ++ ',"description":' ++ json(description) ++ ',"authorName":' ++ json(author.name()) ++ ',"authorEmail":' ++ json(author.email()) ++ ',"authorTimestamp":' ++ json(author.timestamp()) ++ ',"current":' ++ json(current_working_copy) ++ ',"empty":' ++ json(empty) ++ ',"divergent":' ++ json(self.divergent()) ++ ',"bookmarks":' ++ json(local_bookmarks.map(|b| b.name())) ++ ',"tags":' ++ json(local_tags.map(|t| t.name())) ++ '}' ++ "\n"`
 	bookmarkTemplate    = `'{"name":' ++ json(name) ++ ',"remote":' ++ json(remote) ++ ',"present":' ++ json(present) ++ ',"conflict":' ++ json(conflict) ++ ',"tracked":' ++ json(tracked) ++ ',"synced":' ++ json(synced) ++ ',"target":' ++ if(normal_target, json(normal_target.commit_id()), 'null') ++ '}' ++ "\n"`
 	workspaceTemplate   = `'{"name":' ++ json(name) ++ ',"root":' ++ json(root) ++ ',"target":' ++ json(target.commit_id()) ++ ',"changeId":' ++ json(target.change_id()) ++ ',"description":' ++ json(target.description()) ++ '}' ++ "\n"`
 	operationTemplate   = `'{"id":' ++ json(id) ++ ',"parents":' ++ json(parents.map(|op| op.id())) ++ ',"description":' ++ json(description) ++ ',"user":' ++ json(user) ++ ',"timestamp":' ++ json(time.start()) ++ ',"current":' ++ json(current_operation) ++ ',"snapshot":' ++ json(snapshot) ++ ',"workspaceName":' ++ json(workspace_name) ++ ',"root":' ++ json(root) ++ ',"attributes":' ++ json(attributes) ++ '}' ++ "\n"`
@@ -748,6 +748,7 @@ func enrichCommits(commits []Commit) {
 
 	for i := range commits {
 		commits[i].Bookmarks = nonNilSlice(commits[i].Bookmarks)
+		commits[i].Tags = nonNilSlice(commits[i].Tags)
 		commits[i].ShortCommitID = shortID(commits[i].CommitID)
 		commits[i].ShortChangeID = shortID(commits[i].ChangeID)
 		commits[i].Summary = firstLineOrDefault(commits[i].Description, "(no description set)")

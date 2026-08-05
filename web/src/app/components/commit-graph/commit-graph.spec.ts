@@ -207,5 +207,6 @@ function commit(value: Partial<Commit> & Pick<Commit, 'commitId'>): Commit {
     changeOffset: value.changeOffset,
     divergent: value.divergent,
     bookmarks: value.bookmarks ?? [],
+    tags: value.tags ?? [],
   };
 }

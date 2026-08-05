@@ -18,6 +18,7 @@ const commit: Commit = {
   current: false,
   empty: false,
   bookmarks: [],
+  tags: [],
 };
 
 describe('CommitDetail', () => {
@@ -161,6 +162,32 @@ describe('CommitDetail', () => {
     expect(bookmarkPills.length).toBe(1);
     expect(bookmarkPills[0].textContent).toContain('nebius');
     expect(bookmarkPills[0].getAttribute('title')).toContain(`Target: ${selectedCommit.commitId}`);
+  });
+
+  it('should show revision tags below bookmarks without actions', async () => {
+    fixture.componentRef.setInput('commit', {
+      ...commit,
+      tags: ['v1.0.0', 'release'],
+    });
+    await fixture.whenStable();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const bookmarksSection = root.querySelector<HTMLElement>(
+      '[aria-label="Selected commit bookmarks"]',
+    );
+    const tagsSection = root.querySelector<HTMLElement>('[aria-label="Selected commit tags"]');
+    const tagChips = tagsSection?.querySelectorAll<HTMLElement>('mat-chip');
+
+    expect(bookmarksSection).not.toBeNull();
+    expect(tagsSection).not.toBeNull();
+    expect(
+      bookmarksSection!.compareDocumentPosition(tagsSection!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(tagChips?.length).toBe(2);
+    expect(tagChips?.[0].textContent).toContain('v1.0.0');
+    expect(tagChips?.[1].textContent).toContain('release');
+    expect(tagChips?.[0].querySelector('mat-icon')?.textContent).toContain('sell');
+    expect(tagsSection?.querySelector('button')).toBeNull();
   });
 
   it('should show push instead of update in the bookmark menu', async () => {

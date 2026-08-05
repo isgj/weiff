@@ -2096,6 +2096,7 @@ describe('App', () => {
       current: false,
       empty: false,
       bookmarks: [],
+      tags: [],
       ...overrides,
       commitId,
       changeId,

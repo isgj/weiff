@@ -166,6 +166,7 @@ export interface Commit {
   empty: boolean;
   divergent?: boolean;
   bookmarks: string[];
+  tags: string[];
 }
 
 export interface Bookmark {

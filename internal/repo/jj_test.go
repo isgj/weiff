@@ -128,7 +128,7 @@ func TestCommitRunsJjLogForOneRevision(t *testing.T) {
 	dir := t.TempDir()
 	argsPath := filepath.Join(dir, "args")
 	executable := filepath.Join(dir, "jj")
-	commitLine := `○  {"commitId":"1234567890abcdef","changeId":"abcdefghijklmnop","description":"remote work\n\nbody","authorName":"Ada","authorEmail":"ada@example.com","authorTimestamp":"2026-06-29T12:00:00Z","current":false,"empty":false,"bookmarks":[]}`
+	commitLine := `○  {"commitId":"1234567890abcdef","changeId":"abcdefghijklmnop","description":"remote work\n\nbody","authorName":"Ada","authorEmail":"ada@example.com","authorTimestamp":"2026-06-29T12:00:00Z","current":false,"empty":false,"bookmarks":[],"tags":["v1.0.0","release"]}`
 	script := "#!/bin/sh\n" +
 		": > " + shellQuote(argsPath) + "\n" +
 		"for arg in \"$@\"; do\n" +
@@ -159,6 +159,9 @@ func TestCommitRunsJjLogForOneRevision(t *testing.T) {
 	if strings.Contains(string(args), `"parents"`) || strings.Contains(string(args), `"parentChangeIds"`) {
 		t.Fatalf("args = %q, should not request parent ids", string(args))
 	}
+	if !strings.Contains(string(args), "local_tags.map(|t| t.name())") {
+		t.Fatalf("args = %q, should request local tags", string(args))
+	}
 	if result.Rev != "1234567890abcdef" {
 		t.Fatalf("rev = %q, want resolved commit id", result.Rev)
 	}
@@ -170,6 +173,9 @@ func TestCommitRunsJjLogForOneRevision(t *testing.T) {
 	}
 	if result.Commit.Summary != "remote work" {
 		t.Fatalf("summary = %q, want remote work", result.Commit.Summary)
+	}
+	if len(result.Commit.Tags) != 2 || result.Commit.Tags[0] != "v1.0.0" || result.Commit.Tags[1] != "release" {
+		t.Fatalf("tags = %v, want [v1.0.0 release]", result.Commit.Tags)
 	}
 }
 
@@ -334,6 +340,9 @@ func TestEnrichCommitsMarksDivergentChanges(t *testing.T) {
 	}
 	if !commits[2].Divergent {
 		t.Fatalf("jj divergent flag should be preserved without visible duplicate count: %+v", commits[2])
+	}
+	if commits[0].Tags == nil {
+		t.Fatal("tags should be normalized to an empty slice")
 	}
 }
 

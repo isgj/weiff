@@ -88,6 +88,7 @@ type Commit struct {
 	Empty           bool     `json:"empty"`
 	Divergent       bool     `json:"divergent,omitempty"`
 	Bookmarks       []string `json:"bookmarks"`
+	Tags            []string `json:"tags"`
 }
 
 type Bookmark struct {
