@@ -629,12 +629,13 @@
   width: 100%;
   cursor: pointer;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.5rem;
   border-block-style: solid;
   border-block-width: 1px;
   border-color: var(--mat-sys-outline-variant);
   background-color: var(--mat-sys-surface-container-high);
+  padding-inline: 0.75rem;
   padding-block: 1px;
   font-size: 11px;
   color: var(--mat-sys-on-surface-variant);
