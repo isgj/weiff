@@ -3,7 +3,7 @@
 ## Requirements
 
 - `jj` available on `PATH`
-- Go 1.26.5
+- Go 1.26.6
 - Node.js 24
 - npm 11
 - `gofumpt` for Go formatting checks

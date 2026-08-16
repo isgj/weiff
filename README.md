@@ -26,7 +26,7 @@ npm run build
 
 Open [http://127.0.0.1:7000](http://127.0.0.1:7000).
 
-You need `jj`, Go 1.26.5, Node.js 24, and npm 11 to build from source.
+You need `jj`, Go 1.26.6, Node.js 24, and npm 11 to build from source.
 
 ## Docs
 
