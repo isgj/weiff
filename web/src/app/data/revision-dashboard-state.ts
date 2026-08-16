@@ -21,6 +21,8 @@ import {
   RepositoryFilesResult,
   RepoApi,
   RepoState,
+  TagMutation,
+  TagsResult,
   WorkspaceMutation,
   WorkspacesResult,
 } from './repo-api';
@@ -32,7 +34,8 @@ interface PersistedSettings {
   diffMode: DiffMode;
 }
 
-type ActivePage = 'revisions' | 'bookmarks' | 'workspaces' | 'operation-log' | 'files' | 'other';
+type ActivePage =
+  'revisions' | 'bookmarks' | 'tags' | 'workspaces' | 'operation-log' | 'files' | 'other';
 
 interface RevisionSelection {
   rev: string | null;
@@ -103,6 +106,9 @@ export class RevisionDashboardState {
     if (this.bookmarksResource.hasValue() && this.bookmarksResource.value().repoPath !== '') {
       return this.bookmarksResource.value().repoPath;
     }
+    if (this.tagsResource.hasValue() && this.tagsResource.value().repoPath !== '') {
+      return this.tagsResource.value().repoPath;
+    }
     if (this.workspacesResource.hasValue() && this.workspacesResource.value().repoPath !== '') {
       return this.workspacesResource.value().repoPath;
     }
@@ -135,6 +141,9 @@ export class RevisionDashboardState {
     }
     if (this.bookmarksResource.hasValue() && this.bookmarksResource.value().repoPath !== '') {
       paths.add(this.bookmarksResource.value().repoPath);
+    }
+    if (this.tagsResource.hasValue() && this.tagsResource.value().repoPath !== '') {
+      paths.add(this.tagsResource.value().repoPath);
     }
     if (this.workspacesResource.hasValue() && this.workspacesResource.value().repoPath !== '') {
       paths.add(this.workspacesResource.value().repoPath);
@@ -195,8 +204,15 @@ export class RevisionDashboardState {
   );
   readonly remotesResource = httpResource<RemotesResult>(() => this.remotesURL());
   readonly remotes = computed(() =>
-    this.activePage() === 'bookmarks' && this.remotesResource.hasValue()
+    (this.activePage() === 'bookmarks' || this.activePage() === 'tags') &&
+    this.remotesResource.hasValue()
       ? this.remotesResource.value().remotes
+      : [],
+  );
+  readonly tagsResource = httpResource<TagsResult>(() => this.tagsURL());
+  readonly tags = computed(() =>
+    this.activePage() === 'tags' && this.tagsResource.hasValue()
+      ? this.tagsResource.value().tags
       : [],
   );
   readonly workspacesResource = httpResource<WorkspacesResult>(() => this.workspacesURL());
@@ -538,6 +554,29 @@ export class RevisionDashboardState {
     });
   }
 
+  saveTag(request: TagMutation): void {
+    void this.runAction(async () => {
+      const exists = this.tags().some((tag) => tag.name === request.name);
+      const requestWithPath = { ...request, repoPath: this.effectiveRepoPath() };
+      const result = exists
+        ? this.api.updateTag(requestWithPath)
+        : this.api.createTag(requestWithPath);
+      await firstValueFrom(result);
+    });
+  }
+
+  deleteTag(name: string): void {
+    void this.runAction(async () => {
+      await firstValueFrom(this.api.deleteTag(name, this.effectiveRepoPath()));
+    });
+  }
+
+  pushTag(name: string, remote?: string): void {
+    void this.runAction(async () => {
+      await firstValueFrom(this.api.pushTag(name, this.effectiveRepoPath(), remote));
+    });
+  }
+
   createWorkspace(request: WorkspaceMutation): void {
     void this.runAction(async () => {
       await firstValueFrom(
@@ -644,6 +683,9 @@ export class RevisionDashboardState {
       case 'bookmarks':
         this.bookmarksResource.reload();
         break;
+      case 'tags':
+        this.tagsResource.reload();
+        break;
       case 'workspaces':
         this.workspacesResource.reload();
         break;
@@ -683,6 +725,8 @@ export class RevisionDashboardState {
         );
       case 'bookmarks':
         return this.bookmarksResource.isLoading();
+      case 'tags':
+        return this.tagsResource.isLoading();
       case 'workspaces':
         return this.workspacesResource.isLoading();
       case 'operation-log':
@@ -704,6 +748,8 @@ export class RevisionDashboardState {
         );
       case 'bookmarks':
         return this.errorMessage(this.bookmarksResource.error());
+      case 'tags':
+        return this.errorMessage(this.tagsResource.error());
       case 'workspaces':
         return this.errorMessage(this.workspacesResource.error());
       case 'operation-log':
@@ -774,7 +820,10 @@ export class RevisionDashboardState {
   }
 
   private remotesURL(): string | undefined {
-    if (this.activePage() !== 'bookmarks' || !this.hasActiveRepository()) {
+    if (
+      (this.activePage() !== 'bookmarks' && this.activePage() !== 'tags') ||
+      !this.hasActiveRepository()
+    ) {
       return undefined;
     }
 
@@ -782,6 +831,17 @@ export class RevisionDashboardState {
     params.set('_route', String(this.routeActivation()));
     this.appendRepoPath(params);
     return withQuery('/api/remotes', params);
+  }
+
+  private tagsURL(): string | undefined {
+    if (this.activePage() !== 'tags' || !this.hasActiveRepository()) {
+      return undefined;
+    }
+
+    const params = new URLSearchParams();
+    params.set('_route', String(this.routeActivation()));
+    this.appendRepoPath(params);
+    return withQuery('/api/tags', params);
   }
 
   private workspacesURL(): string | undefined {
@@ -1205,6 +1265,8 @@ function pageFromURL(url: string): ActivePage {
       return 'revisions';
     case 'bookmarks':
       return 'bookmarks';
+    case 'tags':
+      return 'tags';
     case 'workspaces':
     case 'worktrees':
       return 'workspaces';

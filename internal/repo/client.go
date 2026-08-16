@@ -30,6 +30,10 @@ type Client interface {
 	SetBookmark(ctx context.Context, opts RequestOptions, req BookmarkRequest) (CommandResult, error)
 	DeleteBookmark(ctx context.Context, opts RequestOptions, name string) (CommandResult, error)
 	PushBookmark(ctx context.Context, opts RequestOptions, req PushBookmarkRequest) (CommandResult, error)
+	Tags(ctx context.Context, opts RequestOptions) (TagsResult, error)
+	SetTag(ctx context.Context, opts RequestOptions, req TagRequest) (CommandResult, error)
+	DeleteTag(ctx context.Context, opts RequestOptions, name string) (CommandResult, error)
+	PushTag(ctx context.Context, opts RequestOptions, req PushTagRequest) (CommandResult, error)
 	AddWorkspace(ctx context.Context, opts RequestOptions, req WorkspaceRequest) (CommandResult, error)
 	ForgetWorkspace(ctx context.Context, opts RequestOptions, name string) (CommandResult, error)
 }
@@ -113,6 +117,36 @@ type PushBookmarkRequest struct {
 	Name     string `json:"name"`
 	Remote   string `json:"remote,omitempty"`
 	AllowNew bool   `json:"allowNew,omitempty"`
+}
+
+type Tag struct {
+	Name        string `json:"name"`
+	Remote      string `json:"remote,omitempty"`
+	Target      string `json:"target,omitempty"`
+	ShortTarget string `json:"shortTarget,omitempty"`
+	Present     bool   `json:"present"`
+	Conflict    bool   `json:"conflict"`
+	Tracked     bool   `json:"tracked"`
+	Synced      bool   `json:"synced"`
+}
+
+type TagsResult struct {
+	RepoPath    string    `json:"repoPath"`
+	VCS         string    `json:"vcs"`
+	Tags        []Tag     `json:"tags"`
+	GeneratedAt time.Time `json:"generatedAt"`
+}
+
+type TagRequest struct {
+	Name      string `json:"name"`
+	Rev       string `json:"rev"`
+	RepoPath  string `json:"repoPath,omitempty"`
+	AllowMove bool   `json:"allowMove"`
+}
+
+type PushTagRequest struct {
+	Name   string `json:"-"`
+	Remote string `json:"remote,omitempty"`
 }
 
 type Remote struct {

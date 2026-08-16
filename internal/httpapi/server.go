@@ -58,6 +58,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/bookmarks/", s.handlePushBookmark)
 	mux.HandleFunc("PUT /api/bookmarks/", s.handleSetBookmark)
 	mux.HandleFunc("DELETE /api/bookmarks/", s.handleDeleteBookmark)
+	mux.HandleFunc("GET /api/tags", s.handleTags)
+	mux.HandleFunc("POST /api/tags", s.handleSetTag)
+	mux.HandleFunc("PUT /api/tags/", s.handleSetTag)
+	mux.HandleFunc("DELETE /api/tags/", s.handleDeleteTag)
+	mux.HandleFunc("POST /api/tags/", s.handlePushTag)
 	mux.HandleFunc("POST /api/workspaces", s.handleAddWorkspace)
 	mux.HandleFunc("DELETE /api/workspaces/", s.handleForgetWorkspace)
 	mux.HandleFunc("GET /api/browse/dirs", s.handleBrowseDirs)
@@ -133,6 +138,19 @@ func (s *Server) handleBookmarks(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	result, err := s.client.Bookmarks(ctx, repoOptionsFromQuery(r))
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleTags(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	result, err := s.client.Tags(ctx, repoOptionsFromQuery(r))
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
 		return
@@ -557,6 +575,87 @@ func (s *Server) handlePushBookmark(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+func (s *Server) handleSetTag(w http.ResponseWriter, r *http.Request) {
+	var req repo.TagRequest
+	if err := decodeRequest(r, &req); err != nil {
+		writeRequestError(w, err)
+		return
+	}
+
+	if r.Method == http.MethodPut {
+		name, err := tagNameFromPath(r.URL.Path)
+		if err != nil {
+			writeRequestError(w, err)
+			return
+		}
+		req.Name = name
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	defer cancel()
+
+	result, err := s.client.SetTag(ctx, repo.RequestOptions{RepoPath: req.RepoPath}, req)
+	if err != nil {
+		slog.ErrorContext(ctx, "set tag failed", slog.String("repo_path", req.RepoPath), slog.String("tag", req.Name), slog.String("rev", req.Rev), slog.Any("error", err))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		return
+	}
+
+	slog.InfoContext(ctx, "tag set", slog.String("repo_path", result.RepoPath), slog.String("tag", req.Name), slog.String("rev", req.Rev))
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleDeleteTag(w http.ResponseWriter, r *http.Request) {
+	name, err := tagNameFromPath(r.URL.Path)
+	if err != nil {
+		writeRequestError(w, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	defer cancel()
+
+	result, err := s.client.DeleteTag(ctx, repoOptionsFromQuery(r), name)
+	if err != nil {
+		slog.ErrorContext(ctx, "delete tag failed", slog.String("repo_path", r.URL.Query().Get("repoPath")), slog.String("tag", name), slog.Any("error", err))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		return
+	}
+
+	slog.InfoContext(ctx, "tag deleted", slog.String("repo_path", result.RepoPath), slog.String("tag", name))
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handlePushTag(w http.ResponseWriter, r *http.Request) {
+	name, err := tagNameFromPushPath(r.URL.Path)
+	if err != nil {
+		writeRequestError(w, err)
+		return
+	}
+
+	var req pushTagRequest
+	if err := decodeRequest(r, &req); err != nil {
+		writeRequestError(w, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	defer cancel()
+
+	result, err := s.client.PushTag(ctx, repo.RequestOptions{RepoPath: req.RepoPath}, repo.PushTagRequest{
+		Name:   name,
+		Remote: req.Remote,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "push tag failed", slog.String("repo_path", req.RepoPath), slog.String("tag", name), slog.String("remote", req.Remote), slog.Any("error", err))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		return
+	}
+
+	slog.InfoContext(ctx, "tag pushed", slog.String("repo_path", result.RepoPath), slog.String("tag", name), slog.String("remote", req.Remote))
+	writeJSON(w, http.StatusOK, result)
+}
+
 func (s *Server) handleAddWorkspace(w http.ResponseWriter, r *http.Request) {
 	var req repo.WorkspaceRequest
 	if err := decodeRequest(r, &req); err != nil {
@@ -706,6 +805,32 @@ func bookmarkNameFromPushPath(path string) (string, error) {
 	return name, nil
 }
 
+func tagNameFromPath(path string) (string, error) {
+	raw := strings.TrimPrefix(path, "/api/tags/")
+	if raw == "" {
+		return "", fmt.Errorf("tag name is required")
+	}
+
+	name, err := url.PathUnescape(raw)
+	if err != nil {
+		return "", fmt.Errorf("decode tag name: %w", err)
+	}
+	return name, nil
+}
+
+func tagNameFromPushPath(path string) (string, error) {
+	raw, ok := strings.CutSuffix(strings.TrimPrefix(path, "/api/tags/"), "/push")
+	if !ok || raw == "" {
+		return "", fmt.Errorf("tag name is required")
+	}
+
+	name, err := url.PathUnescape(raw)
+	if err != nil {
+		return "", fmt.Errorf("decode tag name: %w", err)
+	}
+	return name, nil
+}
+
 func workspaceNameFromPath(path string) (string, error) {
 	raw := strings.TrimPrefix(path, "/api/workspaces/")
 	if raw == "" {
@@ -819,6 +944,11 @@ type pushBookmarkRequest struct {
 	RepoPath string `json:"repoPath,omitempty"`
 	Remote   string `json:"remote,omitempty"`
 	AllowNew bool   `json:"allowNew,omitempty"`
+}
+
+type pushTagRequest struct {
+	RepoPath string `json:"repoPath,omitempty"`
+	Remote   string `json:"remote,omitempty"`
 }
 
 type restorePathsRequest struct {

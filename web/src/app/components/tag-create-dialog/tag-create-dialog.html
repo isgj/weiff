@@ -1,0 +1,51 @@
+<h2 mat-dialog-title>
+  <span class="span-layout">
+    <span>{{ isUpdate() ? 'Move tag' : 'Add tag' }}</span>
+    <button mat-icon-button type="button" aria-label="Close dialog" (click)="cancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </span>
+</h2>
+
+<form (submit)="save(); $event.preventDefault()">
+  <mat-dialog-content class="dialog-content-layout">
+    <div class="div-layout">
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Tag name</mat-label>
+        <mat-icon matPrefix>tag</mat-icon>
+        <input
+          matInput
+          spellcheck="false"
+          autocomplete="off"
+          cdkFocusInitial
+          [formField]="f.name"
+        />
+        @if (isUpdate()) {
+          <mat-hint>Existing tag will be moved to this revision</mat-hint>
+        }
+        @if (f.name().touched() && f.name().errors().length > 0) {
+          <mat-error>{{ f.name().errors()[0].message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="form-field-layout" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Revision</mat-label>
+        <mat-icon matPrefix>commit</mat-icon>
+        <input matInput class="input-layout" spellcheck="false" [formField]="f.revision" />
+        @if (data.revLabel !== '' && data.revLabel !== data.rev) {
+          <mat-hint class="hint-layout">
+            {{ data.revLabel }}
+          </mat-hint>
+        }
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions-layout">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button type="submit" [disabled]="!f().valid()">
+      <mat-icon>{{ isUpdate() ? 'drive_file_move' : 'add' }}</mat-icon>
+      {{ isUpdate() ? 'Move tag' : 'Add tag' }}
+    </button>
+  </mat-dialog-actions>
+</form>

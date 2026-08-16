@@ -15,6 +15,11 @@ export const routes: Routes = [
     title: 'Bookmarks',
   },
   {
+    path: 'tags',
+    loadComponent: () => import('./pages/tags-page/tags-page').then((m) => m.TagsPage),
+    title: 'Tags',
+  },
+  {
     path: 'workspaces',
     loadComponent: () =>
       import('./pages/worktrees-page/worktrees-page').then((m) => m.WorktreesPage),

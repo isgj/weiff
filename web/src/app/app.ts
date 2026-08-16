@@ -42,6 +42,7 @@ const primaryNavItems: NavItem[] = [
     queryParamsHandling: 'merge',
   },
   { path: '/bookmarks', label: 'Bookmarks', icon: 'bookmarks' },
+  { path: '/tags', label: 'Tags', icon: 'tag' },
   { path: '/workspaces', label: 'Workspaces', icon: 'drive_folder_upload' },
   { path: '/operation-log', label: 'Operation Log', icon: 'history' },
 ];

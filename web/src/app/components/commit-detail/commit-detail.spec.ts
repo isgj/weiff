@@ -164,7 +164,7 @@ describe('CommitDetail', () => {
     expect(bookmarkPills[0].getAttribute('title')).toContain(`Target: ${selectedCommit.commitId}`);
   });
 
-  it('should show revision tags below bookmarks without actions', async () => {
+  it('should show revision tags below bookmarks with actions', async () => {
     fixture.componentRef.setInput('commit', {
       ...commit,
       tags: ['v1.0.0', 'release'],
@@ -176,18 +176,62 @@ describe('CommitDetail', () => {
       '[aria-label="Selected commit bookmarks"]',
     );
     const tagsSection = root.querySelector<HTMLElement>('[aria-label="Selected commit tags"]');
-    const tagChips = tagsSection?.querySelectorAll<HTMLElement>('mat-chip');
+    const tagPills = tagsSection?.querySelectorAll<HTMLElement>('.tag-pill');
 
     expect(bookmarksSection).not.toBeNull();
     expect(tagsSection).not.toBeNull();
     expect(
       bookmarksSection!.compareDocumentPosition(tagsSection!) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(tagChips?.length).toBe(2);
-    expect(tagChips?.[0].textContent).toContain('v1.0.0');
-    expect(tagChips?.[1].textContent).toContain('release');
-    expect(tagChips?.[0].querySelector('mat-icon')?.textContent).toContain('sell');
-    expect(tagsSection?.querySelector('button')).toBeNull();
+    expect(tagPills?.length).toBe(2);
+    expect(tagPills?.[0].textContent).toContain('v1.0.0');
+    expect(tagPills?.[1].textContent).toContain('release');
+    expect(tagPills?.[0].querySelector('mat-icon')?.textContent).toContain('sell');
+    expect(tagPills?.[0].querySelector('button[aria-label="Tag actions"]')).toBeTruthy();
+    expect(tagsSection?.querySelector('button.add-tag-button')).toBeTruthy();
+  });
+
+  it('should push and delete tags from the tag pill menu', async () => {
+    const pushed: string[] = [];
+    const deleted: string[] = [];
+    component.tagPushed.subscribe((name) => pushed.push(name));
+    component.tagDeleted.subscribe((name) => deleted.push(name));
+    fixture.componentRef.setInput('commit', { ...commit, tags: ['v1.0.0'] });
+    await fixture.whenStable();
+
+    const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('.tag-pill button')?.click();
+    await fixture.whenStable();
+
+    expect(document.body.textContent).toContain('Push');
+    expect(document.body.textContent).toContain('Delete');
+    menuItem('Push')?.click();
+    await fixture.whenStable();
+
+    expect(pushed).toEqual(['v1.0.0']);
+
+    root.querySelector<HTMLButtonElement>('.tag-pill button')?.click();
+    await fixture.whenStable();
+    dialogResult = true;
+    menuItem('Delete')?.click();
+    await fixture.whenStable();
+
+    expect(deleted).toEqual(['v1.0.0']);
+  });
+
+  it('should emit tagSaved when adding a tag from the details', async () => {
+    const saved: unknown[] = [];
+    component.tagSaved.subscribe((mutation) => saved.push(mutation));
+    fixture.componentRef.setInput('commit', commit);
+    fixture.componentRef.setInput('selectedRev', commit.commitId);
+    await fixture.whenStable();
+
+    const root = fixture.nativeElement as HTMLElement;
+    dialogResult = { name: 'v9.9.9', rev: commit.commitId };
+    root.querySelector<HTMLButtonElement>('.add-tag-button')?.click();
+    await fixture.whenStable();
+
+    expect(saved).toEqual([{ name: 'v9.9.9', rev: commit.commitId }]);
   });
 
   it('should show push instead of update in the bookmark menu', async () => {

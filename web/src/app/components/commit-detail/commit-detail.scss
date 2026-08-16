@@ -213,7 +213,8 @@
   padding-block: 1rem;
 }
 
-.bookmark-strip-layout {
+.bookmark-strip-layout,
+.tag-strip-layout {
   display: flex;
   min-width: 0px;
   flex-wrap: wrap;
@@ -221,7 +222,8 @@
   gap: 10px;
 }
 
-.bookmark-pill-layout {
+.bookmark-pill-layout,
+.tag-pill-layout {
   display: inline-flex;
   min-height: calc(0.25rem * 9);
   max-width: min(360px, 100%);
@@ -237,14 +239,6 @@
   padding-right: 0.125rem;
   padding-left: 0.75rem;
   color: var(--mat-sys-on-surface);
-}
-
-.tag-chip-set {
-  min-width: 0px;
-}
-
-.tag-chip {
-  max-width: min(360px, 100%);
 }
 
 .span-layout-2 {
@@ -265,12 +259,8 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
-.empty-tags-layout {
-  margin-block: 0.5rem;
-  margin-inline-start: 0.5rem;
-}
-
-.add-bookmark-button-layout {
+.add-bookmark-button-layout,
+.add-tag-button-layout {
   flex: none;
 }
 

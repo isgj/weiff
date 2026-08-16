@@ -34,6 +34,13 @@ interface BookmarksResult {
   generatedAt: string;
 }
 
+interface TagsResult {
+  repoPath: string;
+  vcs: string;
+  tags: unknown[];
+  generatedAt: string;
+}
+
 interface RemotesResult {
   repoPath: string;
   vcs: string;
@@ -316,7 +323,7 @@ describe('App', () => {
       Array.from(compiled.querySelectorAll('mat-nav-list[aria-label="Primary navigation"] a')).map(
         (link) => link.getAttribute('aria-label'),
       ),
-    ).toEqual(['Revisions', 'Files', 'Bookmarks', 'Workspaces', 'Operation Log']);
+    ).toEqual(['Revisions', 'Files', 'Bookmarks', 'Tags', 'Workspaces', 'Operation Log']);
     expect(
       compiled.querySelector<HTMLAnchorElement>('a[aria-label="Files"]')?.getAttribute('href'),
     ).not.toContain('path=');
@@ -495,6 +502,72 @@ describe('App', () => {
       generatedAt: '2026-06-17T12:00:00Z',
     });
     await flushBookmarksIfPresent({ repoPath: '/tmp/repo' });
+    await settle(fixture);
+  });
+
+  it('should group reachable and remote-only tags on the tags page', async () => {
+    history.pushState(null, '', '/tags');
+
+    const fixture = await createApp();
+    await flushTagsIfPresent({
+      repoPath: '/tmp/repo',
+      tags: [
+        {
+          name: 'v1.0.0',
+          target: 'abc',
+          shortTarget: 'abc',
+          present: true,
+          conflict: false,
+          tracked: true,
+          synced: false,
+        },
+        {
+          name: 'v2.0.0',
+          remote: 'origin',
+          target: 'def',
+          shortTarget: 'def',
+          present: true,
+          conflict: false,
+          tracked: false,
+          synced: false,
+        },
+      ],
+    });
+    await flushRemotesIfPresent();
+    await settle(fixture);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Reachable');
+    expect(compiled.textContent).toContain('Other remote');
+    expect(compiled.textContent).toContain('v1.0.0');
+    expect(compiled.textContent).toContain('v2.0.0');
+    expect(compiled.textContent).not.toContain('/tmp/repo');
+    expect(compiled.querySelectorAll('.tag-row').length).toBe(2);
+
+    const remoteRow = Array.from(compiled.querySelectorAll<HTMLElement>('.tag-row')).find((row) =>
+      row.textContent?.includes('v2.0.0'),
+    );
+    expect(remoteRow).toBeTruthy();
+    remoteRow?.querySelector<HTMLButtonElement>('button[aria-label^="Tag actions"]')?.click();
+    await settle(fixture);
+
+    expect(menuButton('Open revision')).toBeTruthy();
+    expect(menuButton('New from this')).toBeTruthy();
+    expect(menuButton('Move to selected')).toBeFalsy();
+    expect(menuButton('Delete')).toBeFalsy();
+    menuButton('New from this')?.click();
+
+    const newRequests = await waitForRequests('/api/changes/new');
+    expect(newRequests[0].request.method).toBe('POST');
+    expect(newRequests[0].request.body).toEqual({ rev: 'def', repoPath: '/tmp/repo' });
+    newRequests[0].flush({
+      repoPath: '/tmp/repo',
+      vcs: 'jj',
+      command: ['jj', 'new', 'def'],
+      message: 'created',
+      generatedAt: '2026-06-17T12:00:00Z',
+    });
+    await flushTagsIfPresent({ repoPath: '/tmp/repo' });
     await settle(fixture);
   });
 
@@ -1656,6 +1729,7 @@ describe('App', () => {
       await flushConfigWrites();
       await flushHealthIfPresent();
       await flushBookmarksIfPresent();
+      await flushTagsIfPresent();
       await flushRemotesIfPresent();
       await flushWorkspacesIfPresent();
       await flushRepositoryFilesIfPresent();
@@ -1961,6 +2035,26 @@ describe('App', () => {
             repoPath: '',
             vcs: 'jj',
             bookmarks: [],
+            generatedAt: '2026-06-17T12:00:00Z',
+            ...response,
+          });
+        }
+        return;
+      }
+
+      await Promise.resolve();
+    }
+  }
+
+  async function flushTagsIfPresent(response: Partial<TagsResult> = {}): Promise<void> {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const requests = http.match((req) => req.method === 'GET' && req.url.startsWith('/api/tags'));
+      if (requests.length > 0) {
+        for (const req of requests) {
+          req.flush({
+            repoPath: '',
+            vcs: 'jj',
+            tags: [],
             generatedAt: '2026-06-17T12:00:00Z',
             ...response,
           });

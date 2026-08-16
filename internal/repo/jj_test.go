@@ -512,6 +512,58 @@ func TestPushBookmarkRunsJjGitPushBookmark(t *testing.T) {
 	}
 }
 
+func TestPushTagRunsJjGitPushTag(t *testing.T) {
+	cases := []struct {
+		name     string
+		req      PushTagRequest
+		wantArgs string
+	}{
+		{
+			name:     "default remote",
+			req:      PushTagRequest{Name: "v1.0.0"},
+			wantArgs: "git\npush\n--tag\nv1.0.0\n",
+		},
+		{
+			name:     "explicit remote",
+			req:      PushTagRequest{Name: "v1.0.0", Remote: "upstream"},
+			wantArgs: "git\npush\n--tag\nv1.0.0\n--remote\nupstream\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			argsPath := filepath.Join(dir, "args")
+			executable := filepath.Join(dir, "jj")
+			script := "#!/bin/sh\n" +
+				": > " + shellQuote(argsPath) + "\n" +
+				"for arg in \"$@\"; do\n" +
+				"  printf '%s\\n' \"$arg\" >> " + shellQuote(argsPath) + "\n" +
+				"done\n"
+			if err := os.WriteFile(executable, []byte(script), 0o755); err != nil {
+				t.Fatalf("write fake jj: %v", err)
+			}
+
+			client := &JJClient{repoPath: dir, executable: executable}
+			result, err := client.PushTag(context.Background(), RequestOptions{}, tc.req)
+			if err != nil {
+				t.Fatalf("push tag: %v", err)
+			}
+
+			args, err := os.ReadFile(argsPath)
+			if err != nil {
+				t.Fatalf("read args: %v", err)
+			}
+			if string(args) != tc.wantArgs {
+				t.Fatalf("args = %q, want %q", string(args), tc.wantArgs)
+			}
+			if got, want := strings.Join(result.Command[1:], " "), strings.ReplaceAll(strings.TrimSuffix(tc.wantArgs, "\n"), "\n", " "); got != want {
+				t.Fatalf("command = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestRemotesListsGitRemotes(t *testing.T) {
 	dir := t.TempDir()
 	argsPath := filepath.Join(dir, "args")
@@ -586,6 +638,135 @@ func TestBookmarksListsAllRemoteBookmarks(t *testing.T) {
 	}
 	if len(result.Bookmarks) != 1 || result.Bookmarks[0].Name != "teammate" {
 		t.Fatalf("bookmarks = %+v, want teammate remote bookmark", result.Bookmarks)
+	}
+}
+
+func TestTagsListsAllRemoteTags(t *testing.T) {
+	dir := t.TempDir()
+	argsPath := filepath.Join(dir, "args")
+	executable := filepath.Join(dir, "jj")
+	script := "#!/bin/sh\n" +
+		"for arg in \"$@\"; do\n" +
+		"  printf '%s\\n' \"$arg\" >> " + shellQuote(argsPath) + "\n" +
+		"done\n" +
+		"printf '%s\\n' '---' >> " + shellQuote(argsPath) + "\n" +
+		"case \"$1\" in\n" +
+		"  tag)\n" +
+		"    printf '%s\\n' '{\"name\":\"v1.0.0\",\"remote\":null,\"present\":true,\"conflict\":false,\"tracked\":false,\"synced\":true,\"target\":\"abc\"}'\n" +
+		"    printf '%s\\n' '{\"name\":\"v1.0.0\",\"remote\":\"origin\",\"present\":true,\"conflict\":false,\"tracked\":true,\"synced\":true,\"target\":\"abc\"}'\n" +
+		"    ;;\n" +
+		"esac\n"
+	if err := os.WriteFile(executable, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake jj: %v", err)
+	}
+
+	client := &JJClient{repoPath: dir, executable: executable}
+	result, err := client.Tags(context.Background(), RequestOptions{})
+	if err != nil {
+		t.Fatalf("tags: %v", err)
+	}
+
+	args, err := os.ReadFile(argsPath)
+	if err != nil {
+		t.Fatalf("read args: %v", err)
+	}
+	if !strings.Contains(string(args), "tag\nlist\n--all-remotes\n--no-pager\n") {
+		t.Fatalf("args = %q, want tag list --all-remotes", string(args))
+	}
+	if len(result.Tags) != 2 {
+		t.Fatalf("tags = %+v, want local and remote tags", result.Tags)
+	}
+	if result.Tags[0].Name != "v1.0.0" || result.Tags[0].Remote != "" || !result.Tags[0].Present {
+		t.Fatalf("tags[0] = %+v, want local v1.0.0 tag", result.Tags[0])
+	}
+	if result.Tags[1].Remote != "origin" || !result.Tags[1].Tracked {
+		t.Fatalf("tags[1] = %+v, want tracked origin remote tag", result.Tags[1])
+	}
+}
+
+func TestSetTagRunsJjTagSet(t *testing.T) {
+	cases := []struct {
+		name     string
+		req      TagRequest
+		wantArgs string
+	}{
+		{
+			name:     "new tag",
+			req:      TagRequest{Name: "v1.0.0", Rev: "abc"},
+			wantArgs: "tag\nset\nv1.0.0\n--revision\nabc\n",
+		},
+		{
+			name:     "default revision",
+			req:      TagRequest{Name: "v1.0.0"},
+			wantArgs: "tag\nset\nv1.0.0\n--revision\n@\n",
+		},
+		{
+			name:     "move existing tag",
+			req:      TagRequest{Name: "v1.0.0", Rev: "abc", AllowMove: true},
+			wantArgs: "tag\nset\nv1.0.0\n--revision\nabc\n--allow-move\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			argsPath := filepath.Join(dir, "args")
+			executable := filepath.Join(dir, "jj")
+			script := "#!/bin/sh\n" +
+				": > " + shellQuote(argsPath) + "\n" +
+				"for arg in \"$@\"; do\n" +
+				"  printf '%s\\n' \"$arg\" >> " + shellQuote(argsPath) + "\n" +
+				"done\n"
+			if err := os.WriteFile(executable, []byte(script), 0o755); err != nil {
+				t.Fatalf("write fake jj: %v", err)
+			}
+
+			client := &JJClient{repoPath: dir, executable: executable}
+			result, err := client.SetTag(context.Background(), RequestOptions{}, tc.req)
+			if err != nil {
+				t.Fatalf("set tag: %v", err)
+			}
+
+			args, err := os.ReadFile(argsPath)
+			if err != nil {
+				t.Fatalf("read args: %v", err)
+			}
+			if string(args) != tc.wantArgs {
+				t.Fatalf("args = %q, want %q", string(args), tc.wantArgs)
+			}
+			if got, want := strings.Join(result.Command[1:], " "), strings.ReplaceAll(strings.TrimSuffix(tc.wantArgs, "\n"), "\n", " "); got != want {
+				t.Fatalf("command = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestDeleteTagRunsJjTagDelete(t *testing.T) {
+	dir := t.TempDir()
+	argsPath := filepath.Join(dir, "args")
+	executable := filepath.Join(dir, "jj")
+	script := "#!/bin/sh\n" +
+		"for arg in \"$@\"; do\n" +
+		"  printf '%s\\n' \"$arg\" >> " + shellQuote(argsPath) + "\n" +
+		"done\n"
+	if err := os.WriteFile(executable, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake jj: %v", err)
+	}
+
+	client := &JJClient{repoPath: dir, executable: executable}
+	if _, err := client.DeleteTag(context.Background(), RequestOptions{}, "  "); err == nil {
+		t.Fatal("delete blank tag succeeded, want tag name error")
+	}
+	if _, err := client.DeleteTag(context.Background(), RequestOptions{}, "v1.0.0"); err != nil {
+		t.Fatalf("delete tag: %v", err)
+	}
+
+	args, err := os.ReadFile(argsPath)
+	if err != nil {
+		t.Fatalf("read args: %v", err)
+	}
+	if string(args) != "tag\ndelete\nv1.0.0\n" {
+		t.Fatalf("args = %q, want tag delete v1.0.0", string(args))
 	}
 }
 

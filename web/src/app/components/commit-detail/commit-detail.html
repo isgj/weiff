@@ -213,16 +213,57 @@
           </section>
 
           <section class="tags-row tags-row-layout" aria-label="Selected commit tags">
-            <mat-chip-set class="tag-chip-set" aria-label="Tags on selected commit">
+            <div class="tag-strip tag-strip-layout" [title]="selectedTagTitle()">
               @for (tag of selected.tags; track tag) {
-                <mat-chip class="tag-chip" [title]="tag" [disableRipple]="true">
-                  <mat-icon matChipAvatar>sell</mat-icon>
-                  {{ tag }}
-                </mat-chip>
+                <span class="tag-pill tag-pill-layout" [title]="tagTitle(tag, selected)">
+                  <mat-icon class="icon-layout-2">sell</mat-icon>
+                  <span class="span-layout-2">{{ tag }}</span>
+                  <button
+                    mat-icon-button
+                    class="button-layout"
+                    type="button"
+                    matTooltip="Tag actions"
+                    aria-label="Tag actions"
+                    [matMenuTriggerFor]="tagMenu"
+                  >
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                </span>
+                <mat-menu #tagMenu="matMenu">
+                  <button
+                    mat-menu-item
+                    type="button"
+                    (click)="tagPushed.emit(tag)"
+                    [disabled]="loading()"
+                  >
+                    <mat-icon>cloud_upload</mat-icon>
+                    <span>Push</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    type="button"
+                    (click)="deleteTag(tag)"
+                    [disabled]="loading()"
+                  >
+                    <mat-icon>delete_outline</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </mat-menu>
               } @empty {
                 <span class="empty-tags empty-tags-layout">No tags</span>
               }
-            </mat-chip-set>
+
+              <button
+                mat-button
+                class="add-tag-button add-tag-button-layout"
+                type="button"
+                (click)="openTagDialog()"
+                [disabled]="loading()"
+              >
+                <mat-icon>sell</mat-icon>
+                Add
+              </button>
+            </div>
           </section>
         </section>
 

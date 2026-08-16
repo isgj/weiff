@@ -18,6 +18,7 @@ const (
 	maxDiffBytes        = 4 << 20
 	logTemplate         = `'{"commitId":' ++ json(commit_id) ++ ',"changeId":' ++ json(change_id) ++ ',"changeOffset":' ++ json(self.change_offset()) ++ ',"description":' ++ json(description) ++ ',"authorName":' ++ json(author.name()) ++ ',"authorEmail":' ++ json(author.email()) ++ ',"authorTimestamp":' ++ json(author.timestamp()) ++ ',"current":' ++ json(current_working_copy) ++ ',"empty":' ++ json(empty) ++ ',"divergent":' ++ json(self.divergent()) ++ ',"bookmarks":' ++ json(local_bookmarks.map(|b| b.name())) ++ ',"tags":' ++ json(local_tags.map(|t| t.name())) ++ '}' ++ "\n"`
 	bookmarkTemplate    = `'{"name":' ++ json(name) ++ ',"remote":' ++ json(remote) ++ ',"present":' ++ json(present) ++ ',"conflict":' ++ json(conflict) ++ ',"tracked":' ++ json(tracked) ++ ',"synced":' ++ json(synced) ++ ',"target":' ++ if(normal_target, json(normal_target.commit_id()), 'null') ++ '}' ++ "\n"`
+	tagTemplate         = `'{"name":' ++ json(name) ++ ',"remote":' ++ json(remote) ++ ',"present":' ++ json(present) ++ ',"conflict":' ++ json(conflict) ++ ',"tracked":' ++ json(tracked) ++ ',"synced":' ++ json(synced) ++ ',"target":' ++ if(normal_target, json(normal_target.commit_id()), 'null') ++ '}' ++ "\n"`
 	workspaceTemplate   = `'{"name":' ++ json(name) ++ ',"root":' ++ json(root) ++ ',"target":' ++ json(target.commit_id()) ++ ',"changeId":' ++ json(target.change_id()) ++ ',"description":' ++ json(target.description()) ++ '}' ++ "\n"`
 	operationTemplate   = `'{"id":' ++ json(id) ++ ',"parents":' ++ json(parents.map(|op| op.id())) ++ ',"description":' ++ json(description) ++ ',"user":' ++ json(user) ++ ',"timestamp":' ++ json(time.start()) ++ ',"current":' ++ json(current_operation) ++ ',"snapshot":' ++ json(snapshot) ++ ',"workspaceName":' ++ json(workspace_name) ++ ',"root":' ++ json(root) ++ ',"attributes":' ++ json(attributes) ++ '}' ++ "\n"`
 	diffSummaryTemplate = `'{"path":' ++ json(display_diff_path) ++ ',"status":' ++ json(status) ++ ',"statusChar":' ++ json(status_char) ++ '}' ++ "\n"`
@@ -129,6 +130,25 @@ func (c *JJClient) Bookmarks(ctx context.Context, opts RequestOptions) (Bookmark
 		RepoPath:    repoPath,
 		VCS:         "jj",
 		Bookmarks:   nonNilSlice(bookmarks),
+		GeneratedAt: time.Now().UTC(),
+	}, nil
+}
+
+func (c *JJClient) Tags(ctx context.Context, opts RequestOptions) (TagsResult, error) {
+	repoPath, err := c.repoPathFor(opts)
+	if err != nil {
+		return TagsResult{}, err
+	}
+
+	tags, err := c.listTags(ctx, repoPath)
+	if err != nil {
+		return TagsResult{}, err
+	}
+
+	return TagsResult{
+		RepoPath:    repoPath,
+		VCS:         "jj",
+		Tags:        nonNilSlice(tags),
 		GeneratedAt: time.Now().UTC(),
 	}, nil
 }
@@ -249,6 +269,32 @@ func (c *JJClient) listBookmarks(ctx context.Context, repoPath string) ([]Bookma
 	}
 
 	return bookmarks, nil
+}
+
+func (c *JJClient) listTags(ctx context.Context, repoPath string) ([]Tag, error) {
+	tagArgs := []string{
+		"tag",
+		"list",
+		"--all-remotes",
+		"--no-pager",
+		"--color=never",
+		"--template",
+		tagTemplate,
+	}
+	tagOutput, err := c.run(ctx, repoPath, tagArgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	tags, err := decodeJSONLines[Tag](tagOutput)
+	if err != nil {
+		return nil, fmt.Errorf("parse jj tag list: %w", err)
+	}
+	for i := range tags {
+		tags[i].ShortTarget = shortID(tags[i].Target)
+	}
+
+	return tags, nil
 }
 
 func (c *JJClient) listWorkspaces(ctx context.Context, repoPath string) ([]Workspace, error) {

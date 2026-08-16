@@ -931,6 +931,100 @@ func TestHandlePushBookmark(t *testing.T) {
 	}
 }
 
+func TestHandlePushTag(t *testing.T) {
+	client := fakeClient{commandResult: repo.CommandResult{Message: "pushed"}}
+	req := newRequest(http.MethodPost, "/api/tags/v1.0.0/push", bytes.NewBufferString(`{"repoPath":"/tmp/other","remote":"upstream"}`))
+	rec := httptest.NewRecorder()
+
+	newTestServer(t, &client).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if client.pushTagReq.Name != "v1.0.0" {
+		t.Fatalf("pushed tag = %q, want %q", client.pushTagReq.Name, "v1.0.0")
+	}
+	if client.pushTagReq.Remote != "upstream" {
+		t.Fatalf("push tag remote = %q, want %q", client.pushTagReq.Remote, "upstream")
+	}
+	if client.pushTagOpts.RepoPath != "/tmp/other" {
+		t.Fatalf("push tag repo path = %q, want %q", client.pushTagOpts.RepoPath, "/tmp/other")
+	}
+}
+
+func TestHandleTags(t *testing.T) {
+	client := fakeClient{
+		tagsResult: repo.TagsResult{
+			RepoPath:    "/tmp/repo",
+			VCS:         "jj",
+			Tags:        []repo.Tag{{Name: "v1.0.0", Target: "abc", ShortTarget: "abc", Present: true}},
+			GeneratedAt: time.Date(2026, 6, 29, 12, 0, 0, 0, time.UTC),
+		},
+	}
+
+	req := newRequest(http.MethodGet, "/api/tags?repoPath=%2Ftmp%2Fother", nil)
+	rec := httptest.NewRecorder()
+
+	newTestServer(t, &client).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if client.tagsOpts.RepoPath != "/tmp/other" {
+		t.Fatalf("tags repo path = %q, want %q", client.tagsOpts.RepoPath, "/tmp/other")
+	}
+
+	var got repo.TagsResult
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(got.Tags) != 1 || got.Tags[0].Name != "v1.0.0" {
+		t.Fatalf("tags = %+v, want v1.0.0 tag", got.Tags)
+	}
+}
+
+func TestHandleSetTag(t *testing.T) {
+	client := fakeClient{commandResult: repo.CommandResult{Message: "updated"}}
+	req := newRequest(http.MethodPut, "/api/tags/v1.0.0", bytes.NewBufferString(`{"rev":"abc","repoPath":"/tmp/other","allowMove":true}`))
+	rec := httptest.NewRecorder()
+
+	newTestServer(t, &client).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if client.tagReq.Name != "v1.0.0" {
+		t.Fatalf("tag name = %q, want %q", client.tagReq.Name, "v1.0.0")
+	}
+	if client.tagReq.Rev != "abc" {
+		t.Fatalf("tag rev = %q, want %q", client.tagReq.Rev, "abc")
+	}
+	if !client.tagReq.AllowMove {
+		t.Fatal("tag allowMove = false, want true")
+	}
+	if client.tagOpts.RepoPath != "/tmp/other" {
+		t.Fatalf("tag repo path = %q, want %q", client.tagOpts.RepoPath, "/tmp/other")
+	}
+}
+
+func TestHandleDeleteTag(t *testing.T) {
+	client := fakeClient{commandResult: repo.CommandResult{Message: "deleted"}}
+	req := newRequest(http.MethodDelete, "/api/tags/v1.0.0?repoPath=%2Ftmp%2Fother", nil)
+	rec := httptest.NewRecorder()
+
+	newTestServer(t, &client).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if client.deletedTag != "v1.0.0" {
+		t.Fatalf("deleted tag = %q, want %q", client.deletedTag, "v1.0.0")
+	}
+	if client.deleteTagOpts.RepoPath != "/tmp/other" {
+		t.Fatalf("delete repo path = %q, want %q", client.deleteTagOpts.RepoPath, "/tmp/other")
+	}
+}
+
 func TestHandleRemotes(t *testing.T) {
 	client := fakeClient{
 		remotesResult: repo.RemotesResult{
@@ -1088,6 +1182,14 @@ type fakeClient struct {
 	deletedBookmark         string
 	pushOpts                repo.RequestOptions
 	pushReq                 repo.PushBookmarkRequest
+	tagsResult              repo.TagsResult
+	tagsOpts                repo.RequestOptions
+	tagOpts                 repo.RequestOptions
+	tagReq                  repo.TagRequest
+	deleteTagOpts           repo.RequestOptions
+	deletedTag              string
+	pushTagOpts             repo.RequestOptions
+	pushTagReq              repo.PushTagRequest
 	remotesOpts             repo.RequestOptions
 	remotesResult           repo.RemotesResult
 	workspaceOpts           repo.RequestOptions
@@ -1236,6 +1338,29 @@ func (f *fakeClient) DeleteBookmark(_ context.Context, opts repo.RequestOptions,
 func (f *fakeClient) PushBookmark(_ context.Context, opts repo.RequestOptions, req repo.PushBookmarkRequest) (repo.CommandResult, error) {
 	f.pushOpts = opts
 	f.pushReq = req
+	return f.commandResult, nil
+}
+
+func (f *fakeClient) Tags(_ context.Context, opts repo.RequestOptions) (repo.TagsResult, error) {
+	f.tagsOpts = opts
+	return f.tagsResult, nil
+}
+
+func (f *fakeClient) SetTag(_ context.Context, opts repo.RequestOptions, req repo.TagRequest) (repo.CommandResult, error) {
+	f.tagOpts = opts
+	f.tagReq = req
+	return f.commandResult, nil
+}
+
+func (f *fakeClient) DeleteTag(_ context.Context, opts repo.RequestOptions, name string) (repo.CommandResult, error) {
+	f.deleteTagOpts = opts
+	f.deletedTag = name
+	return f.commandResult, nil
+}
+
+func (f *fakeClient) PushTag(_ context.Context, opts repo.RequestOptions, req repo.PushTagRequest) (repo.CommandResult, error) {
+	f.pushTagOpts = opts
+	f.pushTagReq = req
 	return f.commandResult, nil
 }
 

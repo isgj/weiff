@@ -38,9 +38,10 @@ Files shows the repository content known to Jujutsu. Ignored build output and Ju
 
 ## Manage daily `jj` work
 
-Weiff supports common bookmark and workspace actions:
+Weiff supports common bookmark and tag actions:
 
 - Create, update, delete, and push bookmarks.
+- Create, move, and delete tags on any commit from its details, and manage them on the Tags page.
 - Create, open, and forget workspaces.
 - Restore an operation from the operation log.
 - Undo the latest operation when you need to step back.

@@ -1,0 +1,279 @@
+<main class="main-layout">
+  <header class="header-layout">
+    <div class="div-layout">
+      <h1 class="h1-layout">Tags</h1>
+      <p class="p-layout">Manage tags for {{ dashboard.selectedRepoLabel() }}.</p>
+    </div>
+
+    <button
+      mat-flat-button
+      type="button"
+      class="button-layout"
+      [disabled]="dashboard.loading()"
+      (click)="openCreateTagDialog()"
+    >
+      <mat-icon>add</mat-icon>
+      Add tag
+    </button>
+  </header>
+
+  @if (dashboard.error(); as error) {
+    <mat-card appearance="outlined" class="card-layout">
+      <mat-card-content class="card-content-layout">
+        <mat-icon>error</mat-icon>
+        <span>{{ error }}</span>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <mat-card appearance="outlined" class="card-layout-2">
+    <mat-card-content class="card-content-layout-2">
+      @if (dashboard.tagsResource.isLoading() && !dashboard.tagsResource.hasValue()) {
+        <div class="div-layout-2">
+          <mat-spinner diameter="32" />
+        </div>
+      } @else {
+        <div class="div-layout-3">
+          <section class="section-layout">
+            <header class="header-layout-2">
+              <h2 class="h2-layout">Reachable</h2>
+              <mat-chip-set aria-label="Reachable tag count">
+                <mat-chip highlighted>{{ reachableTags().length }}</mat-chip>
+              </mat-chip-set>
+            </header>
+
+            @if (reachableTags().length > 0) {
+              <ng-container
+                [ngTemplateOutlet]="tagTable"
+                [ngTemplateOutletContext]="{ rows: pagedReachableTags(), remoteOnly: false }"
+              />
+              <mat-paginator
+                class="paginator-layout"
+                [length]="reachableTags().length"
+                [pageIndex]="reachableTagPageIndex()"
+                [pageSize]="reachableTagPage().pageSize"
+                [pageSizeOptions]="pageSizeOptions"
+                showFirstLastButtons
+                aria-label="Reachable tags pagination"
+                (page)="setReachableTagPage($event)"
+              />
+            } @else {
+              <div class="div-layout-2">No reachable tags</div>
+            }
+          </section>
+
+          <section class="section-layout-2">
+            <header class="header-layout-3">
+              <div class="div-layout-4">
+                <h2 class="h2-layout">Other remote</h2>
+                <mat-chip-set aria-label="Other remote tag count">
+                  <mat-chip highlighted>
+                    @if (otherTagFilter().trim() !== '') {
+                      {{ filteredOtherTags().length }} / {{ otherTags().length }}
+                    } @else {
+                      {{ otherTags().length }}
+                    }
+                  </mat-chip>
+                </mat-chip-set>
+              </div>
+
+              @if (otherTags().length > 0) {
+                <mat-form-field
+                  class="form-field-layout"
+                  appearance="outline"
+                  subscriptSizing="dynamic"
+                >
+                  <mat-label>Filter remote tags</mat-label>
+                  <mat-icon matPrefix>search</mat-icon>
+                  <input
+                    matInput
+                    spellcheck="false"
+                    [value]="otherTagFilter()"
+                    (input)="setOtherTagFilter($event)"
+                  />
+                  @if (otherTagFilter().trim() !== '') {
+                    <button
+                      mat-icon-button
+                      matSuffix
+                      type="button"
+                      aria-label="Clear remote tag filter"
+                      (click)="clearOtherTagFilter()"
+                    >
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  }
+                </mat-form-field>
+              }
+            </header>
+
+            @if (filteredOtherTags().length > 0) {
+              <ng-container
+                [ngTemplateOutlet]="tagTable"
+                [ngTemplateOutletContext]="{ rows: pagedOtherTags(), remoteOnly: true }"
+              />
+              <mat-paginator
+                class="paginator-layout"
+                [length]="filteredOtherTags().length"
+                [pageIndex]="otherTagPageIndex()"
+                [pageSize]="otherTagPage().pageSize"
+                [pageSizeOptions]="pageSizeOptions"
+                showFirstLastButtons
+                aria-label="Other remote tags pagination"
+                (page)="setOtherTagPage($event)"
+              />
+            } @else if (otherTags().length > 0) {
+              <div class="div-layout-2">No remote tags match the filter</div>
+            } @else {
+              <div class="div-layout-2">No other remote tags</div>
+            }
+          </section>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</main>
+
+<ng-template #tagTable let-rows="rows" let-remoteOnly="remoteOnly">
+  <div class="div-layout-5">
+    <table mat-table [dataSource]="rows" class="table-layout">
+      <ng-container matColumnDef="tag">
+        <th mat-header-cell *matHeaderCellDef class="th-layout">Tag</th>
+        <td mat-cell *matCellDef="let row" class="td-layout">
+          <div class="div-layout-6" [title]="tagTitle(row)">
+            <mat-icon class="icon-layout">tag</mat-icon>
+            <div class="div-layout-7">
+              <div class="div-layout-8">
+                {{ row.tag.name }}
+              </div>
+              @if (row.tag.remote) {
+                <div class="div-layout-9">
+                  {{ row.tag.remote }}
+                </div>
+              }
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="target">
+        <th mat-header-cell *matHeaderCellDef>Target</th>
+        <td mat-cell *matCellDef="let row" class="td-layout-2">
+          <div class="div-layout-10" [title]="row.targetSummary || row.targetLabel">
+            <mat-icon class="icon-layout-2">commit</mat-icon>
+            <div class="div-layout-7">
+              <div class="div-layout-11">{{ row.targetLabel }}</div>
+              @if (row.targetSummary) {
+                <div class="div-layout-12">
+                  {{ row.targetSummary }}
+                </div>
+              }
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let row" class="td-layout-3">
+          <mat-chip-set aria-label="Tag status">
+            @for (chip of row.chips; track chip.label) {
+              <mat-chip
+                highlighted
+                [class.is-primary]="chip.tone === 'primary'"
+                [class.is-error]="chip.tone === 'error'"
+                [class.is-default]="chip.tone === 'default'"
+              >
+                <mat-icon matChipAvatar>{{ chip.icon }}</mat-icon>
+                {{ chip.label }}
+              </mat-chip>
+            }
+          </mat-chip-set>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="th-layout-2">Actions</th>
+        <td mat-cell *matCellDef="let row" class="td-layout-4">
+          <button
+            mat-icon-button
+            type="button"
+            [matMenuTriggerFor]="tagMenu"
+            [attr.aria-label]="'Tag actions for ' + tagTitle(row)"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #tagMenu="matMenu">
+            <button mat-menu-item type="button" [disabled]="!canOpen(row)" (click)="openTag(row)">
+              <mat-icon>open_in_new</mat-icon>
+              <span>Open revision</span>
+            </button>
+            @if (remoteOnly) {
+              <button
+                mat-menu-item
+                type="button"
+                [disabled]="!canOpen(row)"
+                (click)="newFromTag(row)"
+              >
+                <mat-icon>add_circle</mat-icon>
+                <span>New from this</span>
+              </button>
+            } @else {
+              <button
+                mat-menu-item
+                type="button"
+                [disabled]="!canMutate(row)"
+                (click)="moveTag(row)"
+              >
+                <mat-icon>adjust</mat-icon>
+                <span>Move to selected</span>
+              </button>
+              @if (remotes().length > 1) {
+                <button
+                  mat-menu-item
+                  type="button"
+                  [disabled]="!canMutate(row)"
+                  [matMenuTriggerFor]="pushMenu"
+                >
+                  <mat-icon>cloud_upload</mat-icon>
+                  <span>Push</span>
+                </button>
+                <mat-menu #pushMenu="matMenu">
+                  @for (target of pushTargets(row); track target.remote) {
+                    <button mat-menu-item type="button" (click)="pushTag(row, target.remote)">
+                      <mat-icon>cloud_upload</mat-icon>
+                      <span>Push to {{ target.remote }}{{ target.isNew ? ' (new)' : '' }}</span>
+                    </button>
+                  }
+                </mat-menu>
+              } @else {
+                <button
+                  mat-menu-item
+                  type="button"
+                  [disabled]="!canMutate(row)"
+                  (click)="pushTag(row)"
+                >
+                  <mat-icon>cloud_upload</mat-icon>
+                  <span>Push</span>
+                </button>
+              }
+              <mat-divider />
+              <button
+                mat-menu-item
+                type="button"
+                class="button-layout-2"
+                [disabled]="!canMutate(row)"
+                (click)="deleteTag(row)"
+              >
+                <mat-icon>delete</mat-icon>
+                <span>Delete</span>
+              </button>
+            }
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="tagColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: tagColumns" class="tag-row tag-row-layout"></tr>
+    </table>
+  </div>
+</ng-template>

@@ -335,6 +335,59 @@ func (c *JJClient) PushBookmark(ctx context.Context, opts RequestOptions, req Pu
 	return c.commandResult(ctx, repoPath, args...)
 }
 
+func (c *JJClient) SetTag(ctx context.Context, opts RequestOptions, req TagRequest) (CommandResult, error) {
+	name := strings.TrimSpace(req.Name)
+	rev := strings.TrimSpace(req.Rev)
+	if name == "" {
+		return CommandResult{}, fmt.Errorf("tag name is required")
+	}
+	if rev == "" {
+		rev = "@"
+	}
+
+	args := []string{"tag", "set", name, "--revision", rev}
+	if req.AllowMove {
+		args = append(args, "--allow-move")
+	}
+	repoPath, err := c.repoPathFor(opts)
+	if err != nil {
+		return CommandResult{}, err
+	}
+
+	return c.commandResult(ctx, repoPath, args...)
+}
+
+func (c *JJClient) DeleteTag(ctx context.Context, opts RequestOptions, name string) (CommandResult, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return CommandResult{}, fmt.Errorf("tag name is required")
+	}
+	repoPath, err := c.repoPathFor(opts)
+	if err != nil {
+		return CommandResult{}, err
+	}
+
+	return c.commandResult(ctx, repoPath, "tag", "delete", name)
+}
+
+func (c *JJClient) PushTag(ctx context.Context, opts RequestOptions, req PushTagRequest) (CommandResult, error) {
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		return CommandResult{}, fmt.Errorf("tag name is required")
+	}
+	repoPath, err := c.repoPathFor(opts)
+	if err != nil {
+		return CommandResult{}, err
+	}
+
+	args := []string{"git", "push", "--tag", name}
+	if remote := strings.TrimSpace(req.Remote); remote != "" {
+		args = append(args, "--remote", remote)
+	}
+
+	return c.commandResult(ctx, repoPath, args...)
+}
+
 func (c *JJClient) AddWorkspace(ctx context.Context, opts RequestOptions, req WorkspaceRequest) (CommandResult, error) {
 	destination := strings.TrimSpace(req.Destination)
 	if destination == "" {

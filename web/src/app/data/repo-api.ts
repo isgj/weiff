@@ -74,6 +74,31 @@ export class RepoApi {
     });
   }
 
+  tags(repoPath: string) {
+    return this.http.get<TagsResult>(this.withRepoPath('/api/tags', repoPath));
+  }
+
+  createTag(request: TagMutation) {
+    return this.http.post<CommandResult>('/api/tags', request);
+  }
+
+  updateTag(request: TagMutation) {
+    return this.http.put<CommandResult>(`/api/tags/${encodeURIComponent(request.name)}`, request);
+  }
+
+  deleteTag(name: string, repoPath: string) {
+    return this.http.delete<CommandResult>(
+      this.withRepoPath(`/api/tags/${encodeURIComponent(name)}`, repoPath),
+    );
+  }
+
+  pushTag(name: string, repoPath: string, remote?: string) {
+    return this.http.post<CommandResult>(`/api/tags/${encodeURIComponent(name)}/push`, {
+      repoPath,
+      ...(remote != null && remote !== '' ? { remote } : {}),
+    });
+  }
+
   remotes(repoPath: string) {
     return this.http.get<RemotesResult>(this.withRepoPath('/api/remotes', repoPath));
   }
@@ -184,6 +209,24 @@ export interface BookmarksResult {
   repoPath: string;
   vcs: string;
   bookmarks: Bookmark[];
+  generatedAt: string;
+}
+
+export interface Tag {
+  name: string;
+  remote?: string;
+  target?: string;
+  shortTarget?: string;
+  present: boolean;
+  conflict: boolean;
+  tracked: boolean;
+  synced: boolean;
+}
+
+export interface TagsResult {
+  repoPath: string;
+  vcs: string;
+  tags: Tag[];
   generatedAt: string;
 }
 
@@ -347,6 +390,13 @@ export interface BookmarkMutation {
   rev: string;
   repoPath?: string;
   allowBackwards: boolean;
+}
+
+export interface TagMutation {
+  name: string;
+  rev: string;
+  repoPath?: string;
+  allowMove: boolean;
 }
 
 export interface WorkspaceMutation {

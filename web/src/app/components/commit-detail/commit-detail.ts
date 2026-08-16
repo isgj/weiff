@@ -1,6 +1,5 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,11 +15,13 @@ import {
   Commit,
   EvolutionEntry,
   EvolutionLogResult,
+  TagMutation,
 } from '../../data/repo-api';
 import {
   BookmarkCreateDialog,
   BookmarkDialogData,
 } from '../bookmark-create-dialog/bookmark-create-dialog';
+import { TagCreateDialog, TagDialogData } from '../tag-create-dialog/tag-create-dialog';
 import { ConfirmDialog, ConfirmDialogData } from '../confirm-dialog/confirm-dialog';
 import { DescribeDialog, DescribeDialogData } from '../describe-dialog/describe-dialog';
 import { MarkdownPipe } from '../../shared/markdown.pipe';
@@ -29,7 +30,6 @@ import { MarkdownPipe } from '../../shared/markdown.pipe';
   selector: 'app-commit-detail',
   imports: [
     MatButtonModule,
-    MatChipsModule,
     MatExpansionModule,
     MatIconModule,
     MatMenuModule,
@@ -63,6 +63,9 @@ export class CommitDetail {
   readonly bookmarkSaved = output<BookmarkMutation>();
   readonly bookmarkDeleted = output<string>();
   readonly bookmarkPushed = output<string>();
+  readonly tagSaved = output<TagMutation>();
+  readonly tagDeleted = output<string>();
+  readonly tagPushed = output<string>();
   readonly evolutionSelected = output<EvolutionEntry>();
   readonly evolutionCleared = output<void>();
 
@@ -143,6 +146,14 @@ export class CommitDetail {
 
     return bookmarks.map((bookmark) => bookmark.name).join('\n');
   });
+  protected readonly selectedTagTitle = computed(() => {
+    const tags = this.commit()?.tags ?? [];
+    if (tags.length === 0) {
+      return 'No tags point at this commit.';
+    }
+
+    return tags.join('\n');
+  });
   protected readonly evolutionEntries = computed(() => this.evolutionLog()?.entries ?? []);
   private readonly existingBookmarkNames = computed(() => [
     ...new Set([
@@ -150,6 +161,7 @@ export class CommitDetail {
       ...(this.commit()?.bookmarks ?? []),
     ]),
   ]);
+  private readonly existingTagNames = computed(() => [...new Set(this.commit()?.tags ?? [])]);
 
   protected setInfoTab(index: number): void {
     this.selectedInfoTab.set(index);
@@ -191,6 +203,50 @@ export class CommitDetail {
       }
 
       this.bookmarkSaved.emit(request);
+    });
+  }
+
+  protected openTagDialog(): void {
+    const rev = this.selectedRev();
+    if (rev === '') {
+      return;
+    }
+
+    const commit = this.commit();
+    const ref = this.dialog.open<TagCreateDialog, TagDialogData, TagMutation>(TagCreateDialog, {
+      data: {
+        rev,
+        revLabel: commit?.summary ?? '',
+        revReadonly: true,
+        existingNames: this.existingTagNames,
+      },
+    });
+
+    ref.afterClosed().subscribe((request) => {
+      if (request == null) {
+        return;
+      }
+
+      this.tagSaved.emit(request);
+    });
+  }
+
+  protected deleteTag(tag: string): void {
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Delete tag',
+        message: `Delete tag "${tag}"? The commit it points to is kept.`,
+        confirmLabel: 'Delete',
+        icon: 'delete',
+      },
+    });
+
+    ref.afterClosed().subscribe((confirmed) => {
+      if (confirmed !== true) {
+        return;
+      }
+
+      this.tagDeleted.emit(tag);
     });
   }
 
@@ -296,6 +352,10 @@ export class CommitDetail {
       `Commit: ${commit.commitId}`,
       `Change: ${commit.changeId}`,
     ].join('\n');
+  }
+
+  protected tagTitle(tag: string, commit: Commit): string {
+    return [`Tag: ${tag}`, `Commit: ${commit.commitId}`, `Change: ${commit.changeId}`].join('\n');
   }
 
   protected formatEntryTimestamp(value: string): string {
