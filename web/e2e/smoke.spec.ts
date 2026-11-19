@@ -11,7 +11,7 @@ test('loads the embedded app with accessible core UI', async ({ page }) => {
 
   await page.evaluate(() => document.fonts.ready);
   const iconFont = await page
-    .locator('.material-icons')
+    .locator('mat-icon')
     .first()
     .evaluate((element) => {
       const style = getComputedStyle(element);

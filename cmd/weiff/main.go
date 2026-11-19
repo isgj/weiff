@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"flag"
@@ -38,10 +39,10 @@ func run(args []string) error {
 	}
 
 	flags := flag.NewFlagSet("weiff", flag.ContinueOnError)
-	addr := flags.String("addr", envOrDefault("WEIFF_ADDR", "127.0.0.1:7000"), "HTTP address to listen on")
+	addr := flags.String("addr", cmp.Or(os.Getenv("WEIFF_ADDR"), "127.0.0.1:7000"), "HTTP address to listen on")
 	publicURL := flags.String("public-url", os.Getenv("WEIFF_PUBLIC_URL"), "trusted public HTTP origin when using a reverse proxy")
 	allowRemote := flags.Bool("allow-remote", false, "allow listening on a non-loopback address")
-	configDirectory := flags.String("config-dir", envOrDefault("WEIFF_CONFIG_DIR", defaultConfigDirectory), "configuration directory")
+	configDirectory := flags.String("config-dir", cmp.Or(os.Getenv("WEIFF_CONFIG_DIR"), defaultConfigDirectory), "configuration directory")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -109,11 +110,4 @@ func run(args []string) error {
 
 func frontendNotEmbedded(w http.ResponseWriter, _ *http.Request) {
 	http.Error(w, "frontend is not embedded; run the Angular development server or build with -tags embed_frontend", http.StatusNotFound)
-}
-
-func envOrDefault(name, fallback string) string {
-	if value := os.Getenv(name); value != "" {
-		return value
-	}
-	return fallback
 }

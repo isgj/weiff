@@ -155,7 +155,7 @@ func TestDecodeGraphLogPreservesGraphRows(t *testing.T) {
 }
 
 func TestDecodePrefixedJSONLinesSkipsGraphRows(t *testing.T) {
-	data := []byte(`<  
+	data := []byte(`<
 ○  {"commitId":"abc","changeId":"change","description":"work"}
 │
 ◆  {"commitId":"def","changeId":"next","description":"next work"}
@@ -863,7 +863,9 @@ func TestOperationLogUsesLookAheadToReportMoreOperations(t *testing.T) {
 	executable := filepath.Join(dir, "jj")
 	var output strings.Builder
 	for i := range 3 {
-		output.WriteString(`{"id":"1234567890abcde` + strconv.Itoa(i) + `","parents":[],"description":"operation","user":"ada@example.com","timestamp":"2026-06-29T12:00:00Z"}`)
+		output.WriteString(`{"id":"1234567890abcde`)
+		output.WriteString(strconv.Itoa(i))
+		output.WriteString(`","parents":[],"description":"operation","user":"ada@example.com","timestamp":"2026-06-29T12:00:00Z"}`)
 		output.WriteByte('\n')
 	}
 	script := "#!/bin/sh\nprintf '%s' " + shellQuote(output.String()) + "\n"
