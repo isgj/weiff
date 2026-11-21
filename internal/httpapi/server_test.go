@@ -722,7 +722,7 @@ func TestHandleFrontendDoesNotCatchUnknownAPI(t *testing.T) {
 
 func TestHandleCheckout(t *testing.T) {
 	client := fakeClient{commandResult: repo.CommandResult{Message: "checked out"}}
-	req := newRequest(http.MethodPost, "/api/checkout", bytes.NewBufferString(`{"rev":"abc","repoPath":"/tmp/other"}`))
+	req := newRequest(http.MethodPost, "/api/checkout", bytes.NewBufferString(`{"rev":"abc","repoPath":"/tmp/other","ignoreImmutable":true,"ignoreWorkingCopy":true,"noIntegrateOperation":true}`))
 	rec := httptest.NewRecorder()
 
 	newTestServer(t, &client).Handler().ServeHTTP(rec, req)
@@ -735,6 +735,9 @@ func TestHandleCheckout(t *testing.T) {
 	}
 	if client.checkoutOpts.RepoPath != "/tmp/other" {
 		t.Fatalf("checkout repo path = %q, want %q", client.checkoutOpts.RepoPath, "/tmp/other")
+	}
+	if !client.checkoutOptions.IgnoreImmutable || !client.checkoutOptions.IgnoreWorkingCopy || !client.checkoutOptions.NoIntegrateOperation {
+		t.Fatalf("checkout options = %+v, want all flags true", client.checkoutOptions)
 	}
 }
 
@@ -881,7 +884,7 @@ func TestHandleFetch(t *testing.T) {
 
 func TestHandleSetBookmark(t *testing.T) {
 	client := fakeClient{commandResult: repo.CommandResult{Message: "updated"}}
-	req := newRequest(http.MethodPut, "/api/bookmarks/feature%2Fui", bytes.NewBufferString(`{"rev":"abc","repoPath":"/tmp/other","allowBackwards":true}`))
+	req := newRequest(http.MethodPut, "/api/bookmarks/feature%2Fui", bytes.NewBufferString(`{"rev":"abc","repoPath":"/tmp/other","allowBackwards":true,"ignoreImmutable":true}`))
 	rec := httptest.NewRecorder()
 
 	newTestServer(t, &client).Handler().ServeHTTP(rec, req)
@@ -897,6 +900,9 @@ func TestHandleSetBookmark(t *testing.T) {
 	}
 	if client.bookmarkOpts.RepoPath != "/tmp/other" {
 		t.Fatalf("bookmark repo path = %q, want %q", client.bookmarkOpts.RepoPath, "/tmp/other")
+	}
+	if !client.bookmarkReq.AllowBackwards || !client.bookmarkReq.IgnoreImmutable {
+		t.Fatalf("bookmark flags = %+v, want allowBackwards and ignoreImmutable", client.bookmarkReq)
 	}
 }
 
@@ -996,7 +1002,7 @@ func TestHandleTags(t *testing.T) {
 
 func TestHandleSetTag(t *testing.T) {
 	client := fakeClient{commandResult: repo.CommandResult{Message: "updated"}}
-	req := newRequest(http.MethodPut, "/api/tags/v1.0.0", bytes.NewBufferString(`{"rev":"abc","repoPath":"/tmp/other","allowMove":true}`))
+	req := newRequest(http.MethodPut, "/api/tags/v1.0.0", bytes.NewBufferString(`{"rev":"abc","repoPath":"/tmp/other","allowMove":true,"ignoreImmutable":true}`))
 	rec := httptest.NewRecorder()
 
 	newTestServer(t, &client).Handler().ServeHTTP(rec, req)
@@ -1015,6 +1021,9 @@ func TestHandleSetTag(t *testing.T) {
 	}
 	if client.tagOpts.RepoPath != "/tmp/other" {
 		t.Fatalf("tag repo path = %q, want %q", client.tagOpts.RepoPath, "/tmp/other")
+	}
+	if !client.tagReq.IgnoreImmutable {
+		t.Fatalf("tag ignoreImmutable = false, want true")
 	}
 }
 
@@ -1171,6 +1180,7 @@ type fakeClient struct {
 	commandResult           repo.CommandResult
 	checkoutOpts            repo.RequestOptions
 	checkoutRev             string
+	checkoutOptions         repo.CheckoutOptions
 	newFromOpts             repo.RequestOptions
 	newFromRev              string
 	describeOpts            repo.RequestOptions
@@ -1284,9 +1294,10 @@ func (f *fakeClient) EvolutionDiff(_ context.Context, opts repo.RequestOptions, 
 	return f.evolutionDiffResult, nil
 }
 
-func (f *fakeClient) Checkout(_ context.Context, opts repo.RequestOptions, rev string) (repo.CommandResult, error) {
+func (f *fakeClient) Checkout(_ context.Context, opts repo.RequestOptions, rev string, options repo.CheckoutOptions) (repo.CommandResult, error) {
 	f.checkoutOpts = opts
 	f.checkoutRev = rev
+	f.checkoutOptions = options
 	return f.commandResult, nil
 }
 

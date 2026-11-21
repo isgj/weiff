@@ -19,7 +19,7 @@ type Client interface {
 	RepositoryFiles(ctx context.Context, opts RequestOptions, rev string, path string) (RepositoryFilesResult, error)
 	EvolutionLog(ctx context.Context, opts RequestOptions, rev string, limit int) (EvolutionLogResult, error)
 	EvolutionDiff(ctx context.Context, opts RequestOptions, rev string, commitID string) (DiffResult, error)
-	Checkout(ctx context.Context, opts RequestOptions, rev string) (CommandResult, error)
+	Checkout(ctx context.Context, opts RequestOptions, rev string, options CheckoutOptions) (CommandResult, error)
 	NewFrom(ctx context.Context, opts RequestOptions, rev string) (CommandResult, error)
 	Describe(ctx context.Context, opts RequestOptions, rev string, req DescribeRequest) (CommandResult, error)
 	Abandon(ctx context.Context, opts RequestOptions, rev string) (CommandResult, error)
@@ -42,6 +42,12 @@ type RequestOptions struct {
 	RepoPath string `json:"repoPath,omitempty"`
 	Revset   string `json:"revset,omitempty"`
 	CommitID string `json:"commitId,omitempty"`
+}
+
+type CheckoutOptions struct {
+	IgnoreImmutable      bool `json:"ignoreImmutable,omitempty"`
+	IgnoreWorkingCopy    bool `json:"ignoreWorkingCopy,omitempty"`
+	NoIntegrateOperation bool `json:"noIntegrateOperation,omitempty"`
 }
 
 type HunkRestoreRequest struct {
@@ -138,10 +144,11 @@ type TagsResult struct {
 }
 
 type TagRequest struct {
-	Name      string `json:"name"`
-	Rev       string `json:"rev"`
-	RepoPath  string `json:"repoPath,omitempty"`
-	AllowMove bool   `json:"allowMove"`
+	Name            string `json:"name"`
+	Rev             string `json:"rev"`
+	RepoPath        string `json:"repoPath,omitempty"`
+	AllowMove       bool   `json:"allowMove"`
+	IgnoreImmutable bool   `json:"ignoreImmutable,omitempty"`
 }
 
 type PushTagRequest struct {
@@ -302,10 +309,11 @@ type EvolutionEntry struct {
 }
 
 type BookmarkRequest struct {
-	Name           string `json:"name"`
-	Rev            string `json:"rev"`
-	RepoPath       string `json:"repoPath,omitempty"`
-	AllowBackwards bool   `json:"allowBackwards"`
+	Name            string `json:"name"`
+	Rev             string `json:"rev"`
+	RepoPath        string `json:"repoPath,omitempty"`
+	AllowBackwards  bool   `json:"allowBackwards"`
+	IgnoreImmutable bool   `json:"ignoreImmutable,omitempty"`
 }
 
 type WorkspaceRequest struct {

@@ -705,6 +705,11 @@ func TestSetTagRunsJjTagSet(t *testing.T) {
 			req:      TagRequest{Name: "v1.0.0", Rev: "abc", AllowMove: true},
 			wantArgs: "tag\nset\nv1.0.0\n--revision\nabc\n--allow-move\n",
 		},
+		{
+			name:     "ignore immutable",
+			req:      TagRequest{Name: "v1.0.0", Rev: "abc", AllowMove: true, IgnoreImmutable: true},
+			wantArgs: "tag\nset\nv1.0.0\n--revision\nabc\n--allow-move\n--ignore-immutable\n",
+		},
 	}
 
 	for _, tc := range cases {
@@ -725,6 +730,113 @@ func TestSetTagRunsJjTagSet(t *testing.T) {
 			result, err := client.SetTag(context.Background(), RequestOptions{}, tc.req)
 			if err != nil {
 				t.Fatalf("set tag: %v", err)
+			}
+
+			args, err := os.ReadFile(argsPath)
+			if err != nil {
+				t.Fatalf("read args: %v", err)
+			}
+			if string(args) != tc.wantArgs {
+				t.Fatalf("args = %q, want %q", string(args), tc.wantArgs)
+			}
+			if got, want := strings.Join(result.Command[1:], " "), strings.ReplaceAll(strings.TrimSuffix(tc.wantArgs, "\n"), "\n", " "); got != want {
+				t.Fatalf("command = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestCheckoutRunsJjEdit(t *testing.T) {
+	cases := []struct {
+		name     string
+		options  CheckoutOptions
+		wantArgs string
+	}{
+		{
+			name:     "default",
+			wantArgs: "edit\nabc\n",
+		},
+		{
+			name: "all options",
+			options: CheckoutOptions{
+				IgnoreImmutable:      true,
+				IgnoreWorkingCopy:    true,
+				NoIntegrateOperation: true,
+			},
+			wantArgs: "edit\n--ignore-immutable\n--ignore-working-copy\n--no-integrate-operation\nabc\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			argsPath := filepath.Join(dir, "args")
+			executable := filepath.Join(dir, "jj")
+			script := "#!/bin/sh\n" +
+				": > " + shellQuote(argsPath) + "\n" +
+				"for arg in \"$@\"; do\n" +
+				"  printf '%s\\n' \"$arg\" >> " + shellQuote(argsPath) + "\n" +
+				"done\n"
+			if err := os.WriteFile(executable, []byte(script), 0o755); err != nil {
+				t.Fatalf("write fake jj: %v", err)
+			}
+
+			client := &JJClient{repoPath: dir, executable: executable}
+			result, err := client.Checkout(context.Background(), RequestOptions{}, "abc", tc.options)
+			if err != nil {
+				t.Fatalf("checkout: %v", err)
+			}
+
+			args, err := os.ReadFile(argsPath)
+			if err != nil {
+				t.Fatalf("read args: %v", err)
+			}
+			if string(args) != tc.wantArgs {
+				t.Fatalf("args = %q, want %q", string(args), tc.wantArgs)
+			}
+			if got, want := strings.Join(result.Command[1:], " "), strings.ReplaceAll(strings.TrimSuffix(tc.wantArgs, "\n"), "\n", " "); got != want {
+				t.Fatalf("command = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestSetBookmarkRunsJjBookmarkSet(t *testing.T) {
+	cases := []struct {
+		name     string
+		req      BookmarkRequest
+		wantArgs string
+	}{
+		{
+			name:     "new bookmark",
+			req:      BookmarkRequest{Name: "feature/ui", Rev: "abc"},
+			wantArgs: "bookmark\nset\nfeature/ui\n--revision\nabc\n",
+		},
+		{
+			name:     "allow backwards and immutable",
+			req:      BookmarkRequest{Name: "feature/ui", Rev: "abc", AllowBackwards: true, IgnoreImmutable: true},
+			wantArgs: "bookmark\nset\nfeature/ui\n--revision\nabc\n--allow-backwards\n--ignore-immutable\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			argsPath := filepath.Join(dir, "args")
+			executable := filepath.Join(dir, "jj")
+			script := "#!/bin/sh\n" +
+				": > " + shellQuote(argsPath) + "\n" +
+				"for arg in \"$@\"; do\n" +
+				"  printf '%s\\n' \"$arg\" >> " + shellQuote(argsPath) + "\n" +
+				"done\n"
+			if err := os.WriteFile(executable, []byte(script), 0o755); err != nil {
+				t.Fatalf("write fake jj: %v", err)
+			}
+
+			client := &JJClient{repoPath: dir, executable: executable}
+			result, err := client.SetBookmark(context.Background(), RequestOptions{}, tc.req)
+			if err != nil {
+				t.Fatalf("set bookmark: %v", err)
 			}
 
 			args, err := os.ReadFile(argsPath)

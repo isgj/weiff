@@ -344,7 +344,12 @@ func (s *Server) handleCheckout(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 	defer cancel()
 
-	result, err := s.client.Checkout(ctx, repo.RequestOptions{RepoPath: req.RepoPath}, req.Rev)
+	options := repo.CheckoutOptions{
+		IgnoreImmutable:      req.IgnoreImmutable,
+		IgnoreWorkingCopy:    req.IgnoreWorkingCopy,
+		NoIntegrateOperation: req.NoIntegrateOperation,
+	}
+	result, err := s.client.Checkout(ctx, repo.RequestOptions{RepoPath: req.RepoPath}, req.Rev, options)
 	if err != nil {
 		slog.ErrorContext(ctx, "checkout failed", slog.String("repo_path", req.RepoPath), slog.String("rev", req.Rev), slog.Any("error", err))
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
@@ -941,8 +946,11 @@ func errorCodeForStatus(status int) string {
 }
 
 type revisionRequest struct {
-	Rev      string `json:"rev"`
-	RepoPath string `json:"repoPath,omitempty"`
+	Rev                  string `json:"rev"`
+	RepoPath             string `json:"repoPath,omitempty"`
+	IgnoreImmutable      bool   `json:"ignoreImmutable,omitempty"`
+	IgnoreWorkingCopy    bool   `json:"ignoreWorkingCopy,omitempty"`
+	NoIntegrateOperation bool   `json:"noIntegrateOperation,omitempty"`
 }
 
 type repoPathRequest struct {

@@ -195,7 +195,7 @@ func (c *JJClient) UndoLastOperation(ctx context.Context, opts RequestOptions) (
 	return c.commandResult(ctx, repoPath, "undo")
 }
 
-func (c *JJClient) Checkout(ctx context.Context, opts RequestOptions, rev string) (CommandResult, error) {
+func (c *JJClient) Checkout(ctx context.Context, opts RequestOptions, rev string, options CheckoutOptions) (CommandResult, error) {
 	rev = strings.TrimSpace(rev)
 	if rev == "" {
 		return CommandResult{}, fmt.Errorf("revision is required")
@@ -205,7 +205,19 @@ func (c *JJClient) Checkout(ctx context.Context, opts RequestOptions, rev string
 		return CommandResult{}, err
 	}
 
-	return c.commandResult(ctx, repoPath, "edit", rev)
+	args := []string{"edit"}
+	if options.IgnoreImmutable {
+		args = append(args, "--ignore-immutable")
+	}
+	if options.IgnoreWorkingCopy {
+		args = append(args, "--ignore-working-copy")
+	}
+	if options.NoIntegrateOperation {
+		args = append(args, "--no-integrate-operation")
+	}
+	args = append(args, rev)
+
+	return c.commandResult(ctx, repoPath, args...)
 }
 
 func (c *JJClient) NewFrom(ctx context.Context, opts RequestOptions, rev string) (CommandResult, error) {
@@ -293,6 +305,9 @@ func (c *JJClient) SetBookmark(ctx context.Context, opts RequestOptions, req Boo
 	if req.AllowBackwards {
 		args = append(args, "--allow-backwards")
 	}
+	if req.IgnoreImmutable {
+		args = append(args, "--ignore-immutable")
+	}
 	repoPath, err := c.repoPathFor(opts)
 	if err != nil {
 		return CommandResult{}, err
@@ -348,6 +363,9 @@ func (c *JJClient) SetTag(ctx context.Context, opts RequestOptions, req TagReque
 	args := []string{"tag", "set", name, "--revision", rev}
 	if req.AllowMove {
 		args = append(args, "--allow-move")
+	}
+	if req.IgnoreImmutable {
+		args = append(args, "--ignore-immutable")
 	}
 	repoPath, err := c.repoPathFor(opts)
 	if err != nil {
