@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net"
@@ -11,6 +12,20 @@ import (
 
 const contentSecurityPolicy = "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'"
 
+func RequireAuthToken(token string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const bearerPrefix = "Bearer "
+		authorization := r.Header.Get("Authorization")
+		if !strings.HasPrefix(authorization, bearerPrefix) ||
+			subtle.ConstantTimeCompare([]byte(strings.TrimPrefix(authorization, bearerPrefix)), []byte(token)) != 1 {
+			w.Header().Set("WWW-Authenticate", "Bearer")
+			http.Error(w, "authentication required", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // ValidateListenAddress requires an explicit opt-in before exposing the app to
 // other machines. These applications can access local files and processes.
 func ValidateListenAddress(address string, allowRemote bool) error {
@@ -20,7 +35,7 @@ func ValidateListenAddress(address string, allowRemote bool) error {
 	if allowRemote || IsLoopbackAddress(address) {
 		return nil
 	}
-	return fmt.Errorf("refusing non-loopback HTTP address %q without -allow-remote", address)
+	return fmt.Errorf("refusing non-loopback HTTP address %q without -allow-remote or -auth-token", address)
 }
 
 func IsLoopbackAddress(address string) bool {

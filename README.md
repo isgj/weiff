@@ -35,6 +35,6 @@ You need `jj`, Go 1.27.4, Node.js 24, and npm 11 to build from source.
 
 ## Security
 
-Weiff is designed for single-user, local use and has no login screen. Anyone who can reach the server can use it with the permissions of the operating-system user running it, including access to repositories and local files reachable by `jj`.
+Weiff is designed for single-user, local use. By default, it listens on loopback without authentication. To enable token authentication, start it with `-auth-token ""`; Weiff reuses a saved token or generates one and stores it in the owner-only config file. The browser asks for the token on the first API request and keeps it in local storage.
 
-Keep it bound to a loopback address such as `127.0.0.1`. Do not expose it directly to a public or shared network unless it is protected by authentication, HTTPS, and network-level access controls.
+`-auth-token` also permits non-loopback listen addresses. Use HTTPS (typically through a reverse proxy) and network-level access controls when connecting remotely. The token is stored in browser local storage, so anyone with access to that browser profile can use it. `-allow-remote` by itself still permits unauthenticated access; do not use it on an untrusted network.

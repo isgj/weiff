@@ -122,6 +122,46 @@ func TestStoreLoadRejectsUnknownFields(t *testing.T) {
 	}
 }
 
+func TestEnsureAuthTokenGeneratesPersistsAndReusesToken(t *testing.T) {
+	store := newTestStore(t)
+
+	generated, err := store.EnsureAuthToken("")
+	if err != nil {
+		t.Fatalf("EnsureAuthToken() error = %v", err)
+	}
+	if len(generated) != 43 {
+		t.Fatalf("generated token length = %d, want 43", len(generated))
+	}
+
+	reused, err := store.EnsureAuthToken("")
+	if err != nil {
+		t.Fatalf("EnsureAuthToken() error = %v", err)
+	}
+	if reused != generated {
+		t.Fatalf("reused token = %q, want generated token", reused)
+	}
+
+	loaded, err := store.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if loaded.AuthToken != generated {
+		t.Fatalf("saved token = %q, want generated token", loaded.AuthToken)
+	}
+}
+
+func TestEnsureAuthTokenUsesProvidedToken(t *testing.T) {
+	store := newTestStore(t)
+
+	got, err := store.EnsureAuthToken("my-token")
+	if err != nil {
+		t.Fatalf("EnsureAuthToken() error = %v", err)
+	}
+	if got != "my-token" {
+		t.Fatalf("EnsureAuthToken() = %q, want my-token", got)
+	}
+}
+
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
 	store, err := NewStore(filepath.Join(t.TempDir(), "weiff"))

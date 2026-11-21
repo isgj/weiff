@@ -3,6 +3,8 @@ package config
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +24,7 @@ type Config struct {
 	CurrentRepository string       `json:"currentRepository"`
 	Repositories      []Repository `json:"repositories"`
 	LogRevset         string       `json:"logRevset"`
+	AuthToken         string       `json:"authToken,omitempty"`
 }
 
 type Store struct {
@@ -85,6 +88,35 @@ func (s *Store) CurrentRepository() (string, error) {
 	return value.CurrentRepository, nil
 }
 
+func (s *Store) EnsureAuthToken(token string) (string, error) {
+	value, err := s.Load()
+	if err != nil {
+		return "", err
+	}
+	if token == "" {
+		token = value.AuthToken
+		if token == "" {
+			random := make([]byte, 32)
+			if _, err := rand.Read(random); err != nil {
+				return "", fmt.Errorf("generate auth token: %w", err)
+			}
+			token = base64.RawURLEncoding.EncodeToString(random)
+		}
+	}
+	if strings.ContainsAny(token, " \t\r\n") {
+		return "", errors.New("auth token cannot contain whitespace")
+	}
+	if token == value.AuthToken {
+		return token, nil
+	}
+
+	value.AuthToken = token
+	if _, err := s.Save(value); err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
 func (s *Store) Save(value Config) (Config, error) {
 	normalized := normalize(value)
 	data, err := json.MarshalIndent(normalized, "", "  ")
@@ -111,6 +143,7 @@ func normalize(value Config) Config {
 	normalized := Empty()
 	normalized.CurrentRepository = strings.TrimSpace(value.CurrentRepository)
 	normalized.LogRevset = strings.TrimSpace(value.LogRevset)
+	normalized.AuthToken = value.AuthToken
 
 	repositories := make([]Repository, 0, len(value.Repositories)+1)
 	indexes := make(map[string]int, len(value.Repositories)+1)

@@ -78,6 +78,7 @@ func (s *Server) handleGetConfig(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
+	value.AuthToken = ""
 	writeJSON(w, http.StatusOK, value)
 }
 
@@ -87,6 +88,13 @@ func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
 		writeRequestError(w, err)
 		return
 	}
+	current, err := s.configStore.Load()
+	if err != nil {
+		slog.Error("load config failed", slog.Any("error", err))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		return
+	}
+	value.AuthToken = current.AuthToken
 	saved, err := s.configStore.Save(value)
 	if err != nil {
 		slog.Error("save config failed", slog.Any("error", err))
@@ -94,6 +102,7 @@ func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	saved.AuthToken = ""
 	writeJSON(w, http.StatusOK, saved)
 }
 

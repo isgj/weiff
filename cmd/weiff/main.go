@@ -42,19 +42,17 @@ func run(args []string) error {
 	addr := flags.String("addr", cmp.Or(os.Getenv("WEIFF_ADDR"), "127.0.0.1:7000"), "HTTP address to listen on")
 	publicURL := flags.String("public-url", os.Getenv("WEIFF_PUBLIC_URL"), "trusted public HTTP origin when using a reverse proxy")
 	allowRemote := flags.Bool("allow-remote", false, "allow listening on a non-loopback address")
+	authTokenValue := flags.String("auth-token", "", "enable API token authentication (generate a token when empty)")
 	configDirectory := flags.String("config-dir", cmp.Or(os.Getenv("WEIFF_CONFIG_DIR"), defaultConfigDirectory), "configuration directory")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
+	withAuthToken := false
+	flags.Visit(func(value *flag.Flag) {
+		withAuthToken = withAuthToken || value.Name == "auth-token"
+	})
 	if flags.NArg() != 0 {
 		return fmt.Errorf("unexpected positional arguments: %q", flags.Args())
-	}
-	if err := httpserver.ValidateListenAddress(*addr, *allowRemote); err != nil {
-		return err
-	}
-	publicOrigin, err := httpserver.ResolvePublicOrigin(*addr, *publicURL)
-	if err != nil {
-		return err
 	}
 
 	configStore, err := config.NewStore(*configDirectory)
@@ -62,10 +60,29 @@ func run(args []string) error {
 		return fmt.Errorf("initialize config store %q: %w", *configDirectory, err)
 	}
 
+	authToken := ""
+	if withAuthToken {
+		authToken, err = configStore.EnsureAuthToken(*authTokenValue)
+		if err != nil {
+			return fmt.Errorf("initialize auth token: %w", err)
+		}
+	}
+	if err := httpserver.ValidateListenAddress(*addr, *allowRemote || withAuthToken); err != nil {
+		return err
+	}
+	publicOrigin, err := httpserver.ResolvePublicOrigin(*addr, *publicURL)
+	if err != nil {
+		return err
+	}
+
 	client := repo.NewJJClientWithRepoPathResolver(configStore.CurrentRepository)
 	apiServer := httpapi.NewServer(client, configStore)
 	root := http.NewServeMux()
-	root.Handle("/api/", apiServer.Handler())
+	apiHandler := apiServer.Handler()
+	if withAuthToken {
+		apiHandler = httpserver.RequireAuthToken(authToken, apiHandler)
+	}
+	root.Handle("/api/", apiHandler)
 	if frontend, ok := webui.Handler(); ok {
 		root.Handle("/", frontend)
 	} else {

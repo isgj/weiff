@@ -30,6 +30,7 @@ func TestHandleGetConfig(t *testing.T) {
 		CurrentRepository: "/tmp/repo",
 		Repositories:      []config.Repository{{Path: "/tmp/repo", Name: "Main"}},
 		LogRevset:         "description(feat)",
+		AuthToken:         "private-token",
 	}); err != nil {
 		t.Fatalf("Save() error = %v", err)
 	}
@@ -51,17 +52,24 @@ func TestHandleGetConfig(t *testing.T) {
 	if len(got.Repositories) != 1 || got.Repositories[0].Name != "Main" {
 		t.Fatalf("repositories = %#v", got.Repositories)
 	}
+	if bytes.Contains(rec.Body.Bytes(), []byte("private-token")) {
+		t.Fatal("config response exposed the auth token")
+	}
 }
 
 func TestHandlePutConfig(t *testing.T) {
 	store := newTestConfigStore(t)
+	if _, err := store.Save(config.Config{AuthToken: "private-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
 	req := newRequest(http.MethodPut, "/api/config", bytes.NewBufferString(`{
 		"currentRepository": " /tmp/current ",
 		"repositories": [
 			{"path": "/tmp/other", "name": " Other "},
 			{"path": "/tmp/current"}
 		],
-		"logRevset": " mine() "
+		"logRevset": " mine() ",
+		"authToken": "client-token"
 	}`))
 
 	rec := httptest.NewRecorder()
@@ -76,6 +84,9 @@ func TestHandlePutConfig(t *testing.T) {
 	}
 	if got.CurrentRepository != "/tmp/current" || got.LogRevset != "mine()" {
 		t.Fatalf("saved config = %#v", got)
+	}
+	if got.AuthToken != "private-token" {
+		t.Fatalf("saved auth token = %q, want existing token preserved", got.AuthToken)
 	}
 	if len(got.Repositories) != 2 || got.Repositories[0].Path != "/tmp/current" || got.Repositories[1].Name != "Other" {
 		t.Fatalf("saved repositories = %#v", got.Repositories)

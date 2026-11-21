@@ -126,6 +126,35 @@ func TestMiddleware(t *testing.T) {
 	})
 }
 
+func TestRequireAuthToken(t *testing.T) {
+	t.Parallel()
+
+	handler := RequireAuthToken("secret", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	for _, test := range []struct {
+		name          string
+		authorization string
+		wantStatus    int
+	}{
+		{name: "missing token", wantStatus: http.StatusUnauthorized},
+		{name: "raw token", authorization: "secret", wantStatus: http.StatusUnauthorized},
+		{name: "wrong token", authorization: "Bearer wrong", wantStatus: http.StatusUnauthorized},
+		{name: "valid token", authorization: "Bearer secret", wantStatus: http.StatusNoContent},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			request := httptest.NewRequest(http.MethodGet, "/api/state", nil)
+			request.Header.Set("Authorization", test.authorization)
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
+			if recorder.Code != test.wantStatus {
+				t.Fatalf("status = %d, want %d", recorder.Code, test.wantStatus)
+			}
+		})
+	}
+}
+
 func TestMiddlewareRecoversPanics(t *testing.T) {
 	t.Parallel()
 

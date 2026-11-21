@@ -52,6 +52,20 @@ Long operation histories load in pages. Use **Load older** at the end of the log
 
 Settings keeps the color theme and default diff layout in one place. The diff toolbar can still switch a single review between inline and side-by-side layouts.
 
-## Keep it local
+## Enable token authentication
 
-Weiff does not provide authentication. Run it for yourself on `127.0.0.1`, and do not expose it to people you would not trust with the repositories and files available to your operating-system user.
+Authentication is disabled by default for local use. Enable it with:
+
+```sh
+./dist/weiff -auth-token ""
+```
+
+Weiff reuses the saved token or generates one and stores it in the config file (on Linux, `~/.config/weiff/config.json`). Enter that token in the browser's authentication dialog. You can provide a specific token with `-auth-token "your-token"` instead.
+
+The flag also permits non-loopback listen addresses, for example:
+
+```sh
+./dist/weiff -addr 0.0.0.0:7000 -auth-token ""
+```
+
+Use HTTPS, typically through a reverse proxy, and network-level access controls for remote connections. The browser stores the token in local storage. `-allow-remote` without `-auth-token` still allows unauthenticated access.
