@@ -1,10 +1,12 @@
 import { Component, computed, inject, Signal, signal } from '@angular/core';
 import { form, FormField, readonly, required, validate } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TagMutation } from '../../data/repo-api';
 
 export interface TagDialogData {
@@ -21,10 +23,12 @@ const forbiddenNameCharacters = /[\s@:"'\\/]/;
   imports: [
     FormField,
     MatButtonModule,
+    MatCheckboxModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatTooltipModule,
   ],
   templateUrl: './tag-create-dialog.html',
   styleUrl: './tag-create-dialog.scss',
@@ -64,6 +68,10 @@ export class TagCreateDialog {
     this.data.existingNames().includes(this.model().name.trim()),
   );
 
+  private readonly allowMoveOverride = signal<boolean | null>(null);
+  protected readonly allowMove = computed(() => this.allowMoveOverride() ?? this.isUpdate());
+  protected readonly ignoreImmutable = signal(false);
+
   protected cancel(): void {
     this.dialogRef.close();
   }
@@ -77,7 +85,8 @@ export class TagCreateDialog {
     this.dialogRef.close({
       name: value.name.trim(),
       rev: value.revision.trim(),
-      allowMove: this.isUpdate(),
+      allowMove: this.allowMove(),
+      ignoreImmutable: this.ignoreImmutable(),
     });
   }
 }

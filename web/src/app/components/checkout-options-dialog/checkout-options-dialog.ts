@@ -3,11 +3,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CheckoutOptions } from '../../data/repo-api';
 
 @Component({
   selector: 'app-checkout-options-dialog',
-  imports: [MatButtonModule, MatCheckboxModule, MatDialogModule, MatIconModule],
+  imports: [MatButtonModule, MatCheckboxModule, MatDialogModule, MatIconModule, MatTooltipModule],
   templateUrl: './checkout-options-dialog.html',
   styleUrl: './checkout-options-dialog.scss',
 })

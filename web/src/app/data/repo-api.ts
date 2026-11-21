@@ -402,6 +402,7 @@ export interface BookmarkMutation {
   rev: string;
   repoPath?: string;
   allowBackwards: boolean;
+  ignoreImmutable: boolean;
 }
 
 export interface TagMutation {
@@ -409,6 +410,7 @@ export interface TagMutation {
   rev: string;
   repoPath?: string;
   allowMove: boolean;
+  ignoreImmutable: boolean;
 }
 
 export interface WorkspaceMutation {

@@ -213,6 +213,7 @@ export class BookmarksPage {
       name: row.bookmark.name,
       rev,
       allowBackwards: true,
+      ignoreImmutable: false,
     });
   }
 

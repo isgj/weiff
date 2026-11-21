@@ -1,0 +1,14 @@
+# Example user systemd unit. Install as ~/.config/systemd/user/weiff.service.
+
+[Unit]
+Description=Weiff - web UI for Jujutsu
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+ExecStart=%h/.local/bin/weiff -addr 127.0.0.1:7000 -auth-token ""
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

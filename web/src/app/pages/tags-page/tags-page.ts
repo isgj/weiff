@@ -208,6 +208,7 @@ export class TagsPage {
       name: row.tag.name,
       rev,
       allowMove: true,
+      ignoreImmutable: false,
     });
   }
 

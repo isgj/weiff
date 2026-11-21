@@ -1,11 +1,4 @@
-<h2 mat-dialog-title>
-  <span class="span-layout">
-    <span>{{ isUpdate() ? 'Move bookmark' : 'Add bookmark' }}</span>
-    <button mat-icon-button type="button" aria-label="Close dialog" (click)="cancel()">
-      <mat-icon>close</mat-icon>
-    </button>
-  </span>
-</h2>
+<h2 mat-dialog-title>{{ isUpdate() ? 'Move bookmark' : 'Add bookmark' }}</h2>
 
 <form (submit)="save(); $event.preventDefault()">
   <mat-dialog-content class="dialog-content-layout">
@@ -38,6 +31,34 @@
           </mat-hint>
         }
       </mat-form-field>
+
+      <div class="option-layout">
+        <mat-checkbox [checked]="allowBackwards()" (change)="allowBackwards.set($event.checked)">
+          Allow backwards
+        </mat-checkbox>
+        <mat-icon
+          class="option-info-layout"
+          tabindex="0"
+          aria-label="Allow backwards info"
+          matTooltip="Allow moving the bookmark backwards or sideways."
+        >
+          info
+        </mat-icon>
+      </div>
+
+      <div class="option-layout">
+        <mat-checkbox [checked]="ignoreImmutable()" (change)="ignoreImmutable.set($event.checked)">
+          Ignore immutable
+        </mat-checkbox>
+        <mat-icon
+          class="option-info-layout"
+          tabindex="0"
+          aria-label="Ignore immutable info"
+          matTooltip="Allow setting the bookmark on an immutable revision."
+        >
+          info
+        </mat-icon>
+      </div>
     </div>
   </mat-dialog-content>
 

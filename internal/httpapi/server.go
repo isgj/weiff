@@ -335,7 +335,7 @@ func (s *Server) handleEvolutionDiff(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCheckout(w http.ResponseWriter, r *http.Request) {
-	var req revisionRequest
+	var req checkoutRequest
 	if err := decodeRequest(r, &req); err != nil {
 		writeRequestError(w, err)
 		return
@@ -946,6 +946,11 @@ func errorCodeForStatus(status int) string {
 }
 
 type revisionRequest struct {
+	Rev      string `json:"rev"`
+	RepoPath string `json:"repoPath,omitempty"`
+}
+
+type checkoutRequest struct {
 	Rev                  string `json:"rev"`
 	RepoPath             string `json:"repoPath,omitempty"`
 	IgnoreImmutable      bool   `json:"ignoreImmutable,omitempty"`

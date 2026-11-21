@@ -111,6 +111,11 @@ html[data-theme='system'] {
   --color-graph-lane-7: light-dark(#0f766e, #2dd4bf);
   --color-graph-working: light-dark(#d97706, #fbbf24);
   --weiff-mono-font: 'JetBrains Mono Variable', 'SFMono-Regular', Consolas, monospace;
+  --mat-dialog-headline-padding: 12px 24px 13px;
+}
+
+.mat-mdc-dialog-container .mat-mdc-dialog-title::before {
+  display: none;
 }
 
 *,

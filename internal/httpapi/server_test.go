@@ -741,6 +741,25 @@ func TestHandleCheckout(t *testing.T) {
 	}
 }
 
+func TestRevisionMutationsRejectCheckoutOnlyFields(t *testing.T) {
+	for _, route := range []string{
+		"/api/changes/new",
+		"/api/changes/abandon",
+		"/api/changes/rebase",
+	} {
+		t.Run(route, func(t *testing.T) {
+			req := newRequest(http.MethodPost, route, bytes.NewBufferString(`{"rev":"abc","ignoreImmutable":true}`))
+			rec := httptest.NewRecorder()
+
+			newTestServer(t, &fakeClient{}).Handler().ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+			}
+		})
+	}
+}
+
 func TestHandleNewFrom(t *testing.T) {
 	client := fakeClient{commandResult: repo.CommandResult{Message: "created"}}
 	req := newRequest(http.MethodPost, "/api/changes/new", bytes.NewBufferString(`{"rev":"abc","repoPath":"/tmp/other"}`))

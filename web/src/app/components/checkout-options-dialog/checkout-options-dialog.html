@@ -1,41 +1,55 @@
-<h2 mat-dialog-title>
-  <span class="span-layout">
-    <span>Checkout options</span>
-    <button mat-icon-button type="button" aria-label="Close dialog" (click)="cancel()">
-      <mat-icon>close</mat-icon>
-    </button>
-  </span>
-</h2>
+<h2 mat-dialog-title>Checkout options</h2>
 
 <form (submit)="save(); $event.preventDefault()">
   <mat-dialog-content class="dialog-content-layout">
     <div class="options-layout">
-      <mat-checkbox [checked]="ignoreImmutable()" (change)="ignoreImmutable.set($event.checked)">
-        Ignore immutable
-      </mat-checkbox>
-      <p class="hint-layout">
-        Allow checking out immutable revisions, such as revisions pointed to by tags.
-      </p>
+      <div class="option-layout">
+        <mat-checkbox [checked]="ignoreImmutable()" (change)="ignoreImmutable.set($event.checked)">
+          Ignore immutable
+        </mat-checkbox>
+        <mat-icon
+          class="option-info-layout"
+          tabindex="0"
+          aria-label="Ignore immutable info"
+          matTooltip="Allow checking out immutable revisions, such as revisions pointed to by tags."
+        >
+          info
+        </mat-icon>
+      </div>
 
-      <mat-checkbox
-        [checked]="ignoreWorkingCopy()"
-        (change)="ignoreWorkingCopy.set($event.checked)"
-      >
-        Ignore working copy
-      </mat-checkbox>
-      <p class="hint-layout">
-        Do not snapshot or update the working copy. This can leave the working copy stale.
-      </p>
+      <div class="option-layout">
+        <mat-checkbox
+          [checked]="ignoreWorkingCopy()"
+          (change)="ignoreWorkingCopy.set($event.checked)"
+        >
+          Ignore working copy
+        </mat-checkbox>
+        <mat-icon
+          class="option-info-layout"
+          tabindex="0"
+          aria-label="Ignore working copy info"
+          matTooltip="Do not snapshot or update the working copy. This can leave the working copy stale."
+        >
+          info
+        </mat-icon>
+      </div>
 
-      <mat-checkbox
-        [checked]="noIntegrateOperation()"
-        (change)="noIntegrateOperation.set($event.checked)"
-      >
-        No integrate operation
-      </mat-checkbox>
-      <p class="hint-layout">
-        Leave the new operation unintegrated. Advanced operation-log usage only.
-      </p>
+      <div class="option-layout">
+        <mat-checkbox
+          [checked]="noIntegrateOperation()"
+          (change)="noIntegrateOperation.set($event.checked)"
+        >
+          No integrate operation
+        </mat-checkbox>
+        <mat-icon
+          class="option-info-layout"
+          tabindex="0"
+          aria-label="No integrate operation info"
+          matTooltip="Leave the new operation unintegrated. Advanced operation-log usage only."
+        >
+          info
+        </mat-icon>
+      </div>
     </div>
   </mat-dialog-content>
 

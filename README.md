@@ -32,6 +32,7 @@ You need `jj`, Go 1.27.4, Node.js 24, and npm 11 to build from source.
 
 - [Using Weiff](docs/usage.md)
 - [Development](docs/development.md)
+- [systemd service example](examples/weiff.service)
 
 ## Security
 

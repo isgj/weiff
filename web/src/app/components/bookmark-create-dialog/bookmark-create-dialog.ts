@@ -1,10 +1,12 @@
 import { Component, computed, inject, Signal, signal } from '@angular/core';
 import { form, FormField, readonly, required, validate } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { BookmarkMutation } from '../../data/repo-api';
 
 export interface BookmarkDialogData {
@@ -21,10 +23,12 @@ const forbiddenNameCharacters = /[\s@:"'\\]/;
   imports: [
     FormField,
     MatButtonModule,
+    MatCheckboxModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatTooltipModule,
   ],
   templateUrl: './bookmark-create-dialog.html',
   styleUrl: './bookmark-create-dialog.scss',
@@ -65,6 +69,9 @@ export class BookmarkCreateDialog {
     this.data.existingNames().includes(this.model().name.trim()),
   );
 
+  protected readonly allowBackwards = signal(true);
+  protected readonly ignoreImmutable = signal(false);
+
   protected cancel(): void {
     this.dialogRef.close();
   }
@@ -78,7 +85,8 @@ export class BookmarkCreateDialog {
     this.dialogRef.close({
       name: value.name.trim(),
       rev: value.revision.trim(),
-      allowBackwards: true,
+      allowBackwards: this.allowBackwards(),
+      ignoreImmutable: this.ignoreImmutable(),
     });
   }
 }
