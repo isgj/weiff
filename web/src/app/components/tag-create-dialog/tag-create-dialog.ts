@@ -1,5 +1,5 @@
 import { Component, computed, inject, Signal, signal } from '@angular/core';
-import { form, FormField, required, validate } from '@angular/forms/signals';
+import { form, FormField, readonly, required, validate } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -57,6 +57,7 @@ export class TagCreateDialog {
       return undefined;
     });
     required(p.revision, { message: 'Revision is required' });
+    readonly(p.revision, { when: () => this.data.revReadonly });
   });
 
   protected readonly isUpdate = computed(() =>

@@ -58,7 +58,7 @@ export class BookmarkCreateDialog {
       return undefined;
     });
     required(p.revision, { message: 'Revision is required' });
-    readonly(p.revision, () => this.data.revReadonly);
+    readonly(p.revision, { when: () => this.data.revReadonly });
   });
 
   protected readonly isUpdate = computed(() =>
