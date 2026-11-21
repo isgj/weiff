@@ -165,6 +165,7 @@ jobs:
           build_date_compact="${build_date//-/}"
           tag="build-${build_date_compact}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           gh release create "$tag" dist/release/* \
+            --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Build ${build_date}" \
             --notes "Automated build of main commit ${GITHUB_SHA} on ${build_date}."
