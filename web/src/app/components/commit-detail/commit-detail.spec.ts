@@ -315,6 +315,28 @@ describe('CommitDetail', () => {
       `abandon:${commit.commitId}`,
     ]);
   });
+
+  it('should emit checkout options from the options dialog', async () => {
+    const emitted: unknown[] = [];
+    component.checkoutWithOptionsRequested.subscribe((request) => emitted.push(request));
+    fixture.componentRef.setInput('commit', commit);
+    fixture.componentRef.setInput('selectedRev', commit.commitId);
+    await fixture.whenStable();
+
+    const root = fixture.nativeElement as HTMLElement;
+    dialogResult = {
+      ignoreImmutable: true,
+      ignoreWorkingCopy: false,
+      noIntegrateOperation: true,
+    };
+    root.querySelector<HTMLButtonElement>('button[aria-label="Checkout options"]')?.click();
+    await fixture.whenStable();
+
+    menuItem('Checkout with options…')?.click();
+    await fixture.whenStable();
+
+    expect(emitted).toEqual([{ rev: commit.commitId, options: dialogResult }]);
+  });
 });
 
 function button(root: HTMLElement, label: string): HTMLButtonElement | undefined {

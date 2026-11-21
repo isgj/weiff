@@ -278,6 +278,22 @@
               <mat-icon>check_circle</mat-icon>
               Checkout
             </button>
+            <button
+              mat-icon-button
+              type="button"
+              aria-label="Checkout options"
+              matTooltip="Checkout options"
+              [matMenuTriggerFor]="checkoutOptionsMenu"
+              [disabled]="selected.current || loading()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #checkoutOptionsMenu="matMenu">
+              <button mat-menu-item type="button" (click)="openCheckoutOptionsDialog()">
+                <mat-icon>tune</mat-icon>
+                <span>Checkout with options…</span>
+              </button>
+            </mat-menu>
             <button mat-stroked-button type="button" (click)="newFrom()" [disabled]="loading()">
               <mat-icon>add_circle</mat-icon>
               New Commit

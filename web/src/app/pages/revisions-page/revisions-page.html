@@ -29,6 +29,7 @@
       [evolutionError]="dashboard.evolutionError()"
       [selectedEvolutionCommitId]="dashboard.selectedEvolutionCommitId()"
       (checkoutRequested)="dashboard.checkout($event)"
+      (checkoutWithOptionsRequested)="dashboard.checkout($event.rev, $event.options)"
       (newFromRequested)="dashboard.newFrom($event)"
       (describeRequested)="dashboard.describe($event.rev, $event.description)"
       (abandonRequested)="dashboard.abandon($event)"

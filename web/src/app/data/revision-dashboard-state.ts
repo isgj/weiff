@@ -10,8 +10,10 @@ import {
   BookmarksResult,
   BookmarkMutation,
   ChangeDescription,
+  CheckoutOptions,
   Commit,
   CommitResult,
+  DEFAULT_CHECKOUT_OPTIONS,
   DiffResult,
   EvolutionEntry,
   EvolutionLogResult,
@@ -468,10 +470,10 @@ export class RevisionDashboardState {
     this.selectedEvolutionCommitId.set(null);
   }
 
-  checkout(rev: string): void {
+  checkout(rev: string, options: CheckoutOptions = DEFAULT_CHECKOUT_OPTIONS): void {
     const actionRev = this.exactRevFor(rev);
     void this.runAction(async () => {
-      await firstValueFrom(this.api.checkout(actionRev, this.effectiveRepoPath()));
+      await firstValueFrom(this.api.checkout(actionRev, this.effectiveRepoPath(), options));
       this.selectRevInput(actionRev);
     });
   }

@@ -12,7 +12,9 @@ import {
   Bookmark,
   BookmarkMutation,
   ChangeDescription,
+  CheckoutOptions,
   Commit,
+  DEFAULT_CHECKOUT_OPTIONS,
   EvolutionEntry,
   EvolutionLogResult,
   TagMutation,
@@ -21,6 +23,7 @@ import {
   BookmarkCreateDialog,
   BookmarkDialogData,
 } from '../bookmark-create-dialog/bookmark-create-dialog';
+import { CheckoutOptionsDialog } from '../checkout-options-dialog/checkout-options-dialog';
 import { TagCreateDialog, TagDialogData } from '../tag-create-dialog/tag-create-dialog';
 import { ConfirmDialog, ConfirmDialogData } from '../confirm-dialog/confirm-dialog';
 import { DescribeDialog, DescribeDialogData } from '../describe-dialog/describe-dialog';
@@ -56,6 +59,7 @@ export class CommitDetail {
   readonly selectedEvolutionCommitId = input<string | null>(null);
 
   readonly checkoutRequested = output<string>();
+  readonly checkoutWithOptionsRequested = output<{ rev: string; options: CheckoutOptions }>();
   readonly newFromRequested = output<string>();
   readonly describeRequested = output<{ rev: string; description: ChangeDescription }>();
   readonly abandonRequested = output<string>();
@@ -257,6 +261,31 @@ export class CommitDetail {
     }
 
     this.checkoutRequested.emit(this.revFor(commit));
+  }
+
+  protected openCheckoutOptionsDialog(): void {
+    const commit = this.commit();
+    if (commit == null || commit.current) {
+      return;
+    }
+
+    const rev = this.revFor(commit);
+    const ref = this.dialog.open<CheckoutOptionsDialog, CheckoutOptions, CheckoutOptions>(
+      CheckoutOptionsDialog,
+      {
+        width: '520px',
+        maxWidth: 'calc(100vw - 32px)',
+        data: DEFAULT_CHECKOUT_OPTIONS,
+      },
+    );
+
+    ref.afterClosed().subscribe((options) => {
+      if (options == null) {
+        return;
+      }
+
+      this.checkoutWithOptionsRequested.emit({ rev, options });
+    });
   }
 
   protected newFrom(): void {

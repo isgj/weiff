@@ -1,0 +1,29 @@
+.span-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dialog-content-layout {
+  overflow-x: hidden;
+}
+
+.options-layout {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.25rem;
+}
+
+.hint-layout {
+  margin: 0 0 0.5rem 2rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.85rem;
+}
+
+.dialog-actions-layout {
+  gap: 0.5rem;
+}

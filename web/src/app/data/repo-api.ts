@@ -5,8 +5,8 @@ import { Service, inject } from '@angular/core';
 export class RepoApi {
   private readonly http = inject(HttpClient);
 
-  checkout(rev: string, repoPath: string) {
-    return this.http.post<CommandResult>('/api/checkout', { rev, repoPath });
+  checkout(rev: string, repoPath: string, options: CheckoutOptions = DEFAULT_CHECKOUT_OPTIONS) {
+    return this.http.post<CommandResult>('/api/checkout', { rev, repoPath, ...options });
   }
 
   newFrom(rev: string, repoPath: string) {
@@ -384,6 +384,18 @@ export interface EvolutionEntry {
   totalAdded: number;
   totalRemoved: number;
 }
+
+export interface CheckoutOptions {
+  ignoreImmutable: boolean;
+  ignoreWorkingCopy: boolean;
+  noIntegrateOperation: boolean;
+}
+
+export const DEFAULT_CHECKOUT_OPTIONS: CheckoutOptions = {
+  ignoreImmutable: false,
+  ignoreWorkingCopy: false,
+  noIntegrateOperation: false,
+};
 
 export interface BookmarkMutation {
   name: string;
