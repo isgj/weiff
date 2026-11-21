@@ -24,7 +24,7 @@ jobs:
       - name: Install Jujutsu
         uses: taiki-e/install-action@v2
         with:
-          tool: jj-cli@0.43.0
+          tool: jj-cli@0.47.1
 
       - name: Initialize Jujutsu test repository
         run: |
@@ -47,7 +47,7 @@ jobs:
         run: go install mvdan.cc/gofumpt@v0.10.0
 
       - name: Install staticcheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+        run: go install honnef.co/go/tools/cmd/staticcheck@v0.8.2
 
       - name: Install Playwright Chromium
         working-directory: web
@@ -108,7 +108,7 @@ jobs:
         run: npm audit --prefix web --audit-level=high
 
   cross-build:
-    needs: verify
+    needs: [verify, security]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -140,3 +140,31 @@ jobs:
           name: release-builds-${{ github.sha }}
           path: dist/release/
           retention-days: 7
+
+  publish-main-build:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: [verify, security, cross-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download cross-builds
+        uses: actions/download-artifact@v5
+        with:
+          name: release-builds-${{ github.sha }}
+          path: dist/release/
+
+      - name: Publish automated build release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_date="$(date -u +%F)"
+          build_date_compact="${build_date//-/}"
+          tag="build-${build_date_compact}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          gh release create "$tag" dist/release/* \
+            --target "$GITHUB_SHA" \
+            --title "Build ${build_date}" \
+            --notes "Automated build of main commit ${GITHUB_SHA} on ${build_date}."
