@@ -54,11 +54,10 @@ npm run race
 npm run build
 ```
 
-## Release
+## Build releases
 
-Run `.github/workflows/release.yml` manually from the `main` branch and enter the semantic version
-without a `v` prefix, for example `0.2.0`. The workflow verifies and builds that exact commit, creates
-the required `v0.2.0` Git tag, and publishes:
+Pushes to `main` publish an automated GitHub release once all CI checks pass. The release is tagged
+`build-YYYYMMDD-<run-id>-<attempt>` and contains:
 
 - `weiff-linux-amd64`
 - `weiff-linux-arm64`
