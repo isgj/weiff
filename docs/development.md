@@ -66,4 +66,6 @@ Pushes to `main` publish an automated GitHub release once all CI checks pass. Th
 - `weiff-windows-amd64.exe`
 - `weiff-windows-arm64.exe`
 
-The release directory also contains `checksums.txt`.
+The release notes are generated automatically from the commits and pull
+requests on `main` (GitHub Release Notes API). The release directory also
+contains `checksums.txt`.
