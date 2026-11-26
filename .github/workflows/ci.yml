@@ -168,4 +168,4 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Build ${build_date}" \
-            --notes "Automated build of main commit ${GITHUB_SHA} on ${build_date}."
+            --generate-notes
